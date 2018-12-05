@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<body>
+
+	{% if gimxstatus %}
+	  <h2 style="color: #ee2222;">{{ gimxstatus }}</h2>
+	{% else %}
+	  <h2 style="color: #ff0000;">UNKNOWN GIMX status!</h2>
+	{% endif %}
+
+	<form action="/start" method="post">
+	  GIMX options:<br>
+	  <input type="text" name="options">
+	  <br><br>
+	  <input type="submit" value="Start">
+	</form>
+	<p>Example: -p /dev/ttyUSB0 --config Overwatch_lmello.xml --force-updates --refresh 5 --curses</p>
+ 
+
+	<br>
+
+	<form action="/stop" method="get">
+	  <input type="submit" value="Stop">
+	</form> 
+
+	<br>
+	 	{% with messages = get_flashed_messages() %}
+		{% if messages %}
+		<h3>Result:</h3>
+		<ul>
+		    {% for message in messages %}
+		    <li>{{ message }}</li>
+		    {% endfor %}
+		</ul>
+		{% endif %}
+		{% endwith %}
+
+	
+	</body>
+</html>
