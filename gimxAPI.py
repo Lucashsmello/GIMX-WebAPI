@@ -24,10 +24,8 @@ def isGimxRunning():
 def startGimx(opts):
 	global GIMX_PROC
 	checkDefunctProcess()
-	print 'passou1'
 	#subprocess.call([GIMX_EXEC]+opts)
 	GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts)
-	print 'passou2'
 	time.sleep(2)
 	return isGimxRunning()
 
