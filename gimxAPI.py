@@ -15,6 +15,7 @@ class DeviceNotFound(Exception):
 	pass
 
 def isGimxRunning():
+	checkDefunctProcess()
 	for pid in psutil.pids():
 		p = psutil.Process(pid)
 		if p.name() == GIMX_EXEC:
@@ -23,11 +24,13 @@ def isGimxRunning():
 
 def startGimx(opts):
 	global GIMX_PROC
-	checkDefunctProcess()
 	#subprocess.call([GIMX_EXEC]+opts)
 	GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts)
-	time.sleep(2)
-	return isGimxRunning()
+	for _ in range(4):
+		time.sleep(0.5)
+		if(isGimxRunning()):
+			return True
+	return False
 
 def openKeyboardDevice(): #TODO: open all keyboard devices.
 	devs=[evdev.InputDevice(fn) for fn in evdev.list_devices()]
@@ -49,7 +52,7 @@ def checkDefunctProcess():
 	global GIMX_PROC
 	if(GIMX_PROC is None):
 		return
-	if(GIMX_PROC.poll is None):
+	if(GIMX_PROC.poll() is None):
 		return
 	print "GIMX terminated with return code: "+str(GIMX_PROC.returncode)
 	GIMX_PROC=None
@@ -73,8 +76,6 @@ def stopGimx():
 		keyboard.press(Key.esc)
 	"""
 	time.sleep(1)
-	checkDefunctProcess()
-		
 	return not isGimxRunning()
 
 #print stopGimx()
