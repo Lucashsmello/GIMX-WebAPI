@@ -1,6 +1,6 @@
 import flask
 from flask import Flask, render_template, request, Response, send_from_directory, flash, url_for # pip install flask
-from gimxAPI import isGimxRunning, startGimx, stopGimx
+from gimxAPI import isGimxInitialized, isGimxRunningOK, startGimx, stopGimx
 import gimxAPI
 import os
 
@@ -12,8 +12,8 @@ LAST_OPTS_FILE=APPDATA_DIR+"last_opts"
 
 def handleGimxStart(opts):
 	global APPDATA_DIR,LAST_OPTS_FILE
-	if(isGimxRunning()):
-		return "GIMX is already running!"
+	if(isGimxInitialized()):
+		return "GIMX is already initialized!"
 	if(startGimx(opts.split())==False):
 		return "Unable to start GIMX!"
 	if(not os.path.isdir(APPDATA_DIR)):
@@ -39,10 +39,12 @@ def getLastUsedOptions():
 @app.route("/")
 @app.route("/index")
 def index():
-	if(isGimxRunning()):
-		gimxstatus="GIMX is ON"
+	if(isGimxRunningOK()):
+		gimxstatus='<h2 style="color: #00EE99;">GIMX is ON</h2>'
+	elif(isGimxInitialized()):
+		gimxstatus='<h2 style="color: #CCCC00;">GIMX is initializing..</h2>'
 	else:
-		gimxstatus="GIMX is OFF"
+		gimxstatus='<h2 style="color: #EE1111;">GIMX is OFF</h2>'
 	last_used_opts=getLastUsedOptions()
 	if(last_used_opts is None or last_used_opts == ""):
 		return render_template('control-gimx.html', gimxstatus=gimxstatus)
@@ -64,7 +66,7 @@ def start():
 		opts=request.args.get('options','')
 		msg=handleGimxStart(opts)
 
-	if(not msg): #not empty
+	if(msg): #not empty
 		flash(msg)
 	return flask.redirect(url_for("index"))
 

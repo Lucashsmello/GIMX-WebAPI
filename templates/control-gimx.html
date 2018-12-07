@@ -3,7 +3,7 @@
 	<body>
 
 	{% if gimxstatus %}
-	  <h2 style="color: #ee2222;">{{ gimxstatus }}</h2>
+		{{ gimxstatus|safe }}
 	{% else %}
 	  <h2 style="color: #ff0000;">UNKNOWN GIMX status!</h2>
 	{% endif %}
