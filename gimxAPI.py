@@ -15,9 +15,6 @@ GIMX_PROC=None
 class DeviceNotFound(Exception):
 	pass
 
-class GimxError(Exception):
-	pass
-
 def isGimxInitialized():
 	checkDefunctProcess()
 	for pid in psutil.pids():

@@ -38,6 +38,7 @@ def getLastUsedOptions():
 
 @app.route("/")
 @app.route("/index")
+@app.route("/gimx")
 def index():
 	if(isGimxRunningOK()):
 		gimxstatus='<h2 style="color: #00EE99;">GIMX is ON</h2>'
