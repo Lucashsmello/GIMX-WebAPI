@@ -15,6 +15,13 @@ GIMX_PROC=None
 class DeviceNotFound(Exception):
 	pass
 
+
+def getGimxUserDataDir():
+	return os.path.expanduser('~')+"/.gimx"
+
+def getGimxUserConfigFilesDir():
+	return os.path.join(getGimxUserDataDir(),"config")
+
 def isGimxInitialized():
 	checkDefunctProcess()
 	for pid in psutil.pids():
