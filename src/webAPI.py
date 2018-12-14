@@ -6,12 +6,15 @@ import gimxAPI
 from gimxAPI import *
 import os
 import io
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 api = flask_restful.Api(app)
 
-APPDATA_DIR=os.path.expanduser('~')+"/.gimx-web/"
-LAST_OPTS_FILE=APPDATA_DIR+"last_opts"
+APPDATA_DIR=os.path.expanduser('~')+"/.gimx-web"
+LAST_OPTS_FILE=os.path.join(APPDATA_DIR,"last_opts")
+#UPLOAD_FOLDER=os.path.join(APPDATA_DIR,"uploads")
+#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 class GimxStatus(Resource):
@@ -76,8 +79,12 @@ class GimxStop(Resource):
 		return {'return_code':retcode, 'message':msg}
 
 class GimxConfigFiles(Resource):
+	ALLOWED_EXTENSIONS = set(['xml'])
 	def __init__(self):
 		self.confdir=getGimxUserConfigFilesDir()
+
+	def allowed_file(self,filename):
+		return '.' in filename and filename.rsplit('.', 1)[1].lower() in GimxConfigFiles.ALLOWED_EXTENSIONS
 
 	def get(self, name=None):
 		if(name is None):
@@ -85,7 +92,32 @@ class GimxConfigFiles(Resource):
 			return {'conf_files':xmllist}
 		with open(os.path.join(self.confdir,name),'rb') as f:
 			data=io.BytesIO(f.read())
-			return flask.send_file(data, attachment_filename=name)
+			return flask.send_file(data, as_attachment=True, attachment_filename=name)
+
+	def post(self):
+		global app
+		# check if the post request has the file part
+		if 'file' not in flask.request.files:
+		    return {'return_code':1, 'message':'No file uploaded'}
+		if 'overwrite' in flask.request.form:
+			overwrite_enabled = flask.request.form['overwrite'].lower()=='true'
+		else:
+			overwrite_enabled = False
+		f = flask.request.files['file']
+		if f.filename == '':
+		    return {'return_code':1, 'message':'No file uploaded'}
+		filename = secure_filename(f.filename)
+		if f and not self.allowed_file(filename):
+			return {'return_code':2, 'message':'File name "%s" not allowed' % filename}
+		file_exists=os.path.isfile(os.path.join(self.confdir,f.filename))
+		if(not overwrite_enabled):
+			if file_exists:
+				return {'return_code':3, 'message':'File already exists'}
+			
+		#f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+		f.save(os.path.join(self.confdir,filename))
+		return {'return_code':0}
+
 
 def GimxAddResource(api,res,route1,route2=None):
 	GIMX_API_VERSION=1
