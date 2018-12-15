@@ -12,6 +12,9 @@ import evdev
 GIMX_EXEC="gimx"
 GIMX_PROC=None
 
+GIMX_STDERR_FILE="/tmp/gimx-stderr"
+GIMX_STDOUT_FILE="/tmp/gimx-stdout"
+
 class DeviceNotFound(Exception):
 	pass
 
@@ -31,30 +34,48 @@ def isGimxInitialized():
 	return False
 
 def isGimxRunningOK():
+	global GIMX_STDERR_FILE
 	if(isGimxInitialized()==False):
 		return False
 	if(GIMX_PROC is None):
 		return False
 
 	#FIXME
-	if(os.path.isfile("/tmp/gimx-output")):
-		with open("/tmp/gimx-output",'r') as f:
+	if(os.path.isfile(GIMX_STDERR_FILE)):
+		with open(GIMX_STDERR_FILE,'r') as f:
 			for line in f:
 				if('error' in line.lower()):
 					return False
 
 	return True
 
-def startGimx(opts):
-	global GIMX_PROC,GIMX_STARTED_OK
+
+def getGimxOutput():
+	global GIMX_STDOUT_FILE,GIMX_STDERR_FILE
+	out1=""
+	outerror=""
+	if(os.path.isfile(GIMX_STDOUT_FILE)):
+		with open(GIMX_STDOUT_FILE,'r') as f: 
+			out1=f.read()
+	if(os.path.isfile(GIMX_STDERR_FILE)):
+		with open(GIMX_STDERR_FILE,'r') as f: 
+			outerror=f.read()
+
+	return (out1,outerror)	
+
+def startGimx(opts,wait=2):
+	global GIMX_PROC,GIMX_STARTED_OK,GIMX_STDOUT_FILE,GIMX_STDERR_FILE
 	#subprocess.call([GIMX_EXEC]+opts)
 	GIMX_STARTED_OK=False
 	#GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts,stderr=PIPE)
-	with open("/tmp/gimx-output",'w') as outfile:
-		GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts, stderr=outfile)
-	
-	time.sleep(2)
-	return isGimxRunningOK()
+	with open(GIMX_STDERR_FILE,'w') as ferror, open(GIMX_STDOUT_FILE,'w') as fout:
+		GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts, stdout=fout, stderr=ferror)
+
+	if(not(wait is None)):	
+		if(wait>0):
+			time.sleep(wait)
+			return isGimxRunningOK()
+	return isGimxInitialized()
 
 def openKeyboardDevice(): #TODO: open all keyboard devices.
 	devs=[evdev.InputDevice(fn) for fn in evdev.list_devices()]
@@ -72,13 +93,13 @@ def openKeyboardDevice(): #TODO: open all keyboard devices.
 	return ret
 
 def checkDefunctProcess():
-	global GIMX_PROC
+	global GIMX_PROC,GIMX_STDERR_FILE
 	if(GIMX_PROC is None):
 		return
 	if(GIMX_PROC.poll() is None):
 		return
 	print "GIMX terminated with return code: "+str(GIMX_PROC.returncode)
-	open("/tmp/gimx-output",'w').close()
+	open(GIMX_STDERR_FILE,'w').close()
 	GIMX_PROC=None
 
 def stopGimx():

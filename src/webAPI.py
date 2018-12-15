@@ -29,6 +29,10 @@ class GimxStatus(Resource):
 			status_code=2
 		else:
 			status_code=0
+		if 'get_output' in flask.request.args:
+			if(flask.request.args['get_output'].lower()=='true'):
+				(msg,err)=getGimxOutput()
+				return {'status_code':status_code, 'messages':msg, 'error_messages':err}
 		return {'status_code':status_code}
 
 def handleGimxStart(opts):
