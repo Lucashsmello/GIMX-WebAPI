@@ -33,6 +33,8 @@ def isGimxInitialized():
 			return True
 	return False
 
+
+
 def isGimxRunningOK():
 	global GIMX_STDERR_FILE
 	if(isGimxInitialized()==False):
@@ -40,7 +42,7 @@ def isGimxRunningOK():
 	if(GIMX_PROC is None):
 		return False
 
-	#FIXME
+	#FIXME: make error verification better.
 	if(os.path.isfile(GIMX_STDERR_FILE)):
 		with open(GIMX_STDERR_FILE,'r') as f:
 			for line in f:
@@ -98,8 +100,8 @@ def checkDefunctProcess():
 		return
 	if(GIMX_PROC.poll() is None):
 		return
-	print "GIMX terminated with return code: "+str(GIMX_PROC.returncode)
-	open(GIMX_STDERR_FILE,'w').close()
+	print("GIMX terminated with return code: "+str(GIMX_PROC.returncode))
+	
 	GIMX_PROC=None
 
 def stopGimx():

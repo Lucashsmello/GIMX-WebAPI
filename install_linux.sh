@@ -24,7 +24,7 @@ After=network.target
 [Service]
 Type=simple
 User=$USER
-ExecStart=/usr/bin/env python $EXEC_PATH
+ExecStart=/usr/bin/env python3 $EXEC_PATH
 
 [Install]
 WantedBy=multi-user.target"

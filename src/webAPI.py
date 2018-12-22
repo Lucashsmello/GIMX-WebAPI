@@ -7,6 +7,7 @@ from gimxAPI import *
 import os
 import io
 from werkzeug.utils import secure_filename
+from registerService import registerService, unregisterService
 
 app = Flask(__name__)
 api = flask_restful.Api(app)
@@ -19,7 +20,11 @@ LAST_OPTS_FILE=os.path.join(APPDATA_DIR,"last_opts")
 
 class GimxStatus(Resource):
 	"""
-	Gives info about gimx process status. 
+	Gives info about gimx process status.
+	Status codes:
+		0:OFF
+		1:Running OK 
+		2:Initializing
 	"""
 	def get(self):
 		status_code=0
@@ -35,11 +40,11 @@ class GimxStatus(Resource):
 				return {'status_code':status_code, 'messages':msg, 'error_messages':err}
 		return {'status_code':status_code}
 
-def handleGimxStart(opts):
+def handleGimxStart(opts,wait_sec=None):
 	global APPDATA_DIR,LAST_OPTS_FILE
 	if(isGimxInitialized()):
 		return 1
-	if(startGimx(opts.split())==False):
+	if(startGimx(opts.split(),wait_sec)==False):
 		return 2
 	if(not os.path.isdir(APPDATA_DIR)):
 		os.mkdir(APPDATA_DIR)
@@ -47,14 +52,20 @@ def handleGimxStart(opts):
 		with open(LAST_OPTS_FILE,'w') as f:
 			f.write(opts)
 	except IOError:
-		print 'could not write used options in a file!'
+		print('could not write used options in a file!')
 	return 0
 
 
 class GimxStart(Resource):
 	def post(self):
 		opts=flask.request.form['options'] #TODO: Schema for options
-		retcode=handleGimxStart(opts)
+		wait_sec=None
+		if('wait_sec' in flask.request.form):
+			try:
+				wait_sec=int(flask.request.form['wait_sec']) #TODO: Schema for options
+			except ValueError:
+				return {'return_code':3, 'message':'Invalid value for parameter "wait"'}
+		retcode=handleGimxStart(opts,wait_sec)
 		msg=""
 		if(retcode==2):
 			msg="Unable to start GIMX!"
@@ -136,6 +147,11 @@ GimxAddResource(api,GimxStatus,'status')
 GimxAddResource(api,GimxStart,'start')
 GimxAddResource(api,GimxStop,'stop')
 GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
+registerService()
 
-app.run(host='0.0.0.0', port=80, debug=True) 
+p = os.system('hostname -I | cut -d" " -f1 > /tmp/myipaddress')
+with open('/tmp/myipaddress','r') as f:
+	IPADDRESS=f.readline().strip()
+	#print('Using ip address "%s"' % IPADDRESS)
+app.run(host=IPADDRESS, port=80, debug=False) 
 
