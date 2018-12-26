@@ -7,7 +7,7 @@ from gimxAPI import *
 import os
 import io
 from werkzeug.utils import secure_filename
-from registerService import registerService, unregisterService
+#from registerService import registerService, unregisterService, initZEROCONF
 
 app = Flask(__name__)
 api = flask_restful.Api(app)
@@ -16,6 +16,17 @@ APPDATA_DIR=os.path.expanduser('~')+"/.gimx-web"
 LAST_OPTS_FILE=os.path.join(APPDATA_DIR,"last_opts")
 #UPLOAD_FOLDER=os.path.join(APPDATA_DIR,"uploads")
 #app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def getLastUsedOptions():
+	opts=None
+	try:
+		if(os.path.isfile(LAST_OPTS_FILE)):
+			with open(LAST_OPTS_FILE) as f:
+				opts=f.readline()
+	except IOError:
+		print "getLastUsedOptions() failed!"
+		return None
+	return opts
 
 
 class GimxStatus(Resource):
@@ -57,6 +68,9 @@ def handleGimxStart(opts,wait_sec=None):
 
 
 class GimxStart(Resource):
+	def get(self):
+		return self.gstart(getLastUsedOptions())
+
 	def post(self):
 		opts=flask.request.form['options'] #TODO: Schema for options
 		wait_sec=None
@@ -65,6 +79,9 @@ class GimxStart(Resource):
 				wait_sec=int(flask.request.form['wait_sec']) #TODO: Schema for options
 			except ValueError:
 				return {'return_code':3, 'message':'Invalid value for parameter "wait"'}
+		return self.gstart(opts,wait_sec)
+
+	def gstart(self,opts,wait_sec=None):
 		retcode=handleGimxStart(opts,wait_sec)
 		msg=""
 		if(retcode==2):
@@ -147,11 +164,12 @@ GimxAddResource(api,GimxStatus,'status')
 GimxAddResource(api,GimxStart,'start')
 GimxAddResource(api,GimxStop,'stop')
 GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
-registerService()
 
 p = os.system('hostname -I | cut -d" " -f1 > /tmp/myipaddress')
 with open('/tmp/myipaddress','r') as f:
 	IPADDRESS=f.readline().strip()
-	#print('Using ip address "%s"' % IPADDRESS)
-app.run(host=IPADDRESS, port=80, debug=False) 
+	#initZEROCONF(IPADDRESS)
+	#registerService()
+	app.run(host=IPADDRESS, port=80, debug=False)
+#app.run(host="0.0.0.0", port=80, debug=False)  
 
