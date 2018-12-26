@@ -3,4 +3,3 @@ Flask
 Flask-RESTful
 psutil
 python-uinput
-zeroconf

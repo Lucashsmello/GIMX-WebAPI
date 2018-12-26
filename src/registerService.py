@@ -1,31 +1,25 @@
-from zeroconf import ServiceInfo, Zeroconf
 import socket
-from time import sleep
 from sys import argv
+from time import sleep
 
-zeroconf = Zeroconf()
-ZINFO = ServiceInfo("_http._tcp.local.",
-	               "GIMX API SERVICE._http._tcp.local.",
-	               socket.inet_aton("127.0.0.1"), 80, 0, 0,
-	               {'path': '/gimx/api/v1/'})
 
-def registerService():
-	global zeroconf, ZINFO
-	zeroconf.register_service(ZINFO)
+def listenBroadcast():
+	UDP_PORT=51915
+	client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+	client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+	client.bind(("", UDP_PORT))
+	print("Listening...")
+	while True:
+		data, addr = client.recvfrom(1024)
+		print("received message from %s: %s" % (addr,data))
+		if(data=="whoGIMXAPISERVICE"):
+			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+			sock.sendto("megimxservice", (addr[0], UDP_PORT))
+		sleep(0.5)
 
-def unregisterService():
-	global zeroconf, ZINFO
-	print("Unregistering...")
-	zeroconf.unregister_service(ZINFO)
-	zeroconf.close()
 
 if __name__=="__main__":
-	if(argv[-1]=='--unregister'):
-		unregisterService()
-	elif(argv[-1]=='--register'):
-		registerService()
-	else:
-		print("Must specify --register or --unregister")
+	listenBroadcast()
 
 #try:
 #    while True:
