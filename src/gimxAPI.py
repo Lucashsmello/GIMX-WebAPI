@@ -61,12 +61,12 @@ def getGimxOutput():
 			out1=f.read()
 	if(os.path.isfile(GIMX_STDERR_FILE)):
 		with open(GIMX_STDERR_FILE,'r') as f: 
-			outerror=f.read()
-
+			outerror=f.read().replace("[01;31m","").replace("[0m","")
 	return (out1,outerror)	
 
 def startGimx(opts,wait=2):
 	global GIMX_PROC,GIMX_STARTED_OK,GIMX_STDOUT_FILE,GIMX_STDERR_FILE
+	print("Starting gimx with options: %s" % opts) 
 	#subprocess.call([GIMX_EXEC]+opts)
 	GIMX_STARTED_OK=False
 	#GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts,stderr=PIPE)

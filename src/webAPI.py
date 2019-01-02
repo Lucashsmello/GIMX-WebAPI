@@ -72,6 +72,8 @@ class GimxStart(Resource):
 		return self.gstart(getLastUsedOptions())
 
 	def post(self):
+		if(not ('options' in flask.request.form)):
+			return {'return_code':4, 'message':'Missing parameter "options"'}
 		opts=flask.request.form['options'] #TODO: Schema for options
 		wait_sec=None
 		if('wait_sec' in flask.request.form):
@@ -170,6 +172,6 @@ with open('/tmp/myipaddress','r') as f:
 	IPADDRESS=f.readline().strip()
 	#initZEROCONF(IPADDRESS)
 	#registerService()
-	app.run(host=IPADDRESS, port=80, debug=False)
+	app.run(host=IPADDRESS, port=80, debug=True)
 #app.run(host="0.0.0.0", port=80, debug=False)  
 
