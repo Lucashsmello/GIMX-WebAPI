@@ -16,7 +16,7 @@ if [ "$1" == "--uninstall" ]; then
 	exit
 fi
 
-EXEC_PATH=`pwd`/src/main.py
+EXEC_PATH=`pwd`/src/webAPI.py
 SERVICE_CONTENT="[Unit]
 Description=GIMX Web Service
 After=network.target
@@ -24,7 +24,7 @@ After=network.target
 [Service]
 Type=simple
 User=$USER
-ExecStart=/usr/bin/env python3 $EXEC_PATH
+ExecStart=/usr/bin/env python $EXEC_PATH
 
 [Install]
 WantedBy=multi-user.target"

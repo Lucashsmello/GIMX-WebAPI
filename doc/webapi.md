@@ -2,6 +2,8 @@
 ---
 Route prefix: **gimx/api/v1**
 
+All responses are in JSON format.
+
 # /status
 Supported: **GET**
 ### GET
@@ -9,8 +11,8 @@ Gives info about gimx process status. Response can have three values:
 
 * **status_code** (int): 
 	- 0: No gimx process exists;
-	- 1: if is running and working normally;
-	- 2: Gimx is initialized but not fully working yet.
+	- 1: Gimx is initialized but not fully working yet.
+	- 2: if is running and working normally;
 * **messages** (string): GIMX stdout. (Exists only if parameter **get_output**="true")
 * **error_messages** (string): GIMX stderr. (Exists only if parameter **get_output**="true")
 
@@ -41,9 +43,9 @@ Supported: **POST**
 
 ### POST
 Starts/Initializes Gimx process by calling [gimx command line binary](http://gimx.fr/wiki/index.php?title=Command_line) using specified parameters.
-On normal execution, this changes the gimx state from 0 (OFF) to 2 (Initializing). If successfully initialized, then it changes to state 1 (Running).
+On normal execution, this changes the gimx state from 0 (OFF) to 1 (Initializing). If successfully initialized, then it changes to state 2 (Running).
 See [Section /status](#/status) for more details. Note that normally, after making this request, gimx is not fully running yet. 
-You should make pooling **/status** requests until GIMX is fully running or completly goes OFF (an error occurs).
+You should make polling **/status** requests until GIMX is fully running or completly goes OFF (an error occurs).
 
 #### Parameters
 Has only one parameter:
@@ -54,7 +56,7 @@ Has only one parameter:
 * **return_code** (int): returns 0 on success, otherwise:
 	- 1: GIMX is already initialized!
 	- 2: Unable to start GIMX! (And we don't known why)
-	- 4: Missing parameter "options"
+	- 3: Missing parameter "options"
 * **message** (string): If an error occurs, an error message is given here. (Exists only if **return_code** is not 0).
 
 # /stop

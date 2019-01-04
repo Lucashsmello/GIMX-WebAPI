@@ -32,17 +32,22 @@ def getLastUsedOptions():
 class GimxStatus(Resource):
 	"""
 	Gives info about gimx process status.
-	Status codes:
-		0:OFF
-		1:Running OK 
-		2:Initializing
 	"""
 	def get(self):
+		"""
+		Response
+			status_code (int):
+				0: No gimx process exists;
+				1: if is running and working normally;
+				2: Gimx is initialized but not fully working yet.
+			messages (string): GIMX stdout. (Exists only if parameter get_output="true")
+			error_messages (string): GIMX stderr. (Exists only if parameter get_output="true")
+		"""
 		status_code=0
 		if(isGimxRunningOK()):
-			status_code=1
-		elif(isGimxInitialized()):
 			status_code=2
+		elif(isGimxInitialized()):
+			status_code=1
 		else:
 			status_code=0
 		if 'get_output' in flask.request.args:
@@ -68,19 +73,39 @@ def handleGimxStart(opts,wait_sec=None):
 
 
 class GimxStart(Resource):
+	"""
+	Resource responsible for starting gimx process. 
+	Starts/Initializes Gimx process by calling gimx command line binary using specified parameters.
+	On normal execution, this changes the gimx state from 0 (OFF) to 1 (Initializing). If successfully initialized, then it changes to state 2 (Running).
+	Note that normally, after making this request, gimx is not fully running yet.
+	You should make polling /status requests until GIMX is fully running or completly goes OFF (an error occurs).
+	"""
+
 	def get(self):
 		return self.gstart(getLastUsedOptions())
 
 	def post(self):
+		"""
+		POST params
+			options (string): the options used on the gimx command line binary (see [http://gimx.fr/wiki/index.php?title=Command_line]). Example: "options"="-c file_name -p /dev/ttyUSB0"
+		
+		POST Response
+		    return_code (int): returns 0 on success, otherwise:
+        		* 1: GIMX is already initialized!
+        		* 2: Unable to start GIMX! (And we don't known why)
+        		* 3: Missing parameter "options"
+    		message (string): If an error occurs, an error message is given here. (Exists only if return_code is not 0).
+
+		"""
 		if(not ('options' in flask.request.form)):
-			return {'return_code':4, 'message':'Missing parameter "options"'}
+			return {'return_code':3, 'message':'Missing parameter "options"'}
 		opts=flask.request.form['options'] #TODO: Schema for options
 		wait_sec=None
 		if('wait_sec' in flask.request.form):
 			try:
 				wait_sec=int(flask.request.form['wait_sec']) #TODO: Schema for options
 			except ValueError:
-				return {'return_code':3, 'message':'Invalid value for parameter "wait"'}
+				return {'return_code':4, 'message':'Invalid value for parameter "wait"'}
 		return self.gstart(opts,wait_sec)
 
 	def gstart(self,opts,wait_sec=None):
@@ -121,6 +146,10 @@ class GimxConfigFiles(Resource):
 		return '.' in filename and filename.rsplit('.', 1)[1].lower() in GimxConfigFiles.ALLOWED_EXTENSIONS
 
 	def get(self, name=None):
+		"""
+		Gets a list of all configuration files. Response have only one value:
+		    conf_files (string-list): A list of strings (can be empty) with each xml configuration file.
+		"""
 		if(name is None):
 			xmllist=[f for f in os.listdir(self.confdir) if f.endswith(".xml")]
 			return {'conf_files':xmllist}
@@ -129,17 +158,23 @@ class GimxConfigFiles(Resource):
 			return flask.send_file(data, as_attachment=True, attachment_filename=name)
 
 	def post(self):
+		"""
+		Uploads a configuration file.
+		POST Parameters
+			file
+			overwrite: {true,false} - if true, the file can overwrite an existing one
+		"""
 		global app
 		# check if the post request has the file part
 		if 'file' not in flask.request.files:
-		    return {'return_code':1, 'message':'No file uploaded'}
+		    return {'return_code':1, 'message':'No file specified'}
 		if 'overwrite' in flask.request.form:
 			overwrite_enabled = flask.request.form['overwrite'].lower()=='true'
 		else:
 			overwrite_enabled = False
 		f = flask.request.files['file']
 		if f.filename == '':
-		    return {'return_code':1, 'message':'No file uploaded'}
+		    return {'return_code':1, 'message':'No file specified'}
 		filename = secure_filename(f.filename)
 		if f and not self.allowed_file(filename):
 			return {'return_code':2, 'message':'File name "%s" not allowed' % filename}
@@ -162,16 +197,17 @@ def GimxAddResource(api,res,route1,route2=None):
 	R2='/gimx/api/v%d/%s' % (GIMX_API_VERSION, route2)
 	api.add_resource(res,R1,R2)
 
-GimxAddResource(api,GimxStatus,'status')
-GimxAddResource(api,GimxStart,'start')
-GimxAddResource(api,GimxStop,'stop')
-GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
+if __name__=="__main__":
+	GimxAddResource(api,GimxStatus,'status')
+	GimxAddResource(api,GimxStart,'start')
+	GimxAddResource(api,GimxStop,'stop')
+	GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
 
-p = os.system('hostname -I | cut -d" " -f1 > /tmp/myipaddress')
-with open('/tmp/myipaddress','r') as f:
-	IPADDRESS=f.readline().strip()
-	#initZEROCONF(IPADDRESS)
-	#registerService()
+	p = os.system('hostname -I | cut -d" " -f1 > /tmp/myipaddress')
+	with open('/tmp/myipaddress','r') as f:
+		IPADDRESS=f.readline().strip()
+		#initZEROCONF(IPADDRESS)
+		#registerService()
 	app.run(host=IPADDRESS, port=80, debug=True)
-#app.run(host="0.0.0.0", port=80, debug=False)  
+	#app.run(host="0.0.0.0", port=80, debug=False)  
 
