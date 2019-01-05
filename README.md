@@ -20,3 +20,5 @@ To uninstall, run with --uninstall as an option:
 ```
 bash install_linux.sh --uninstall
 ```
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=9HSBCLLHHDMAY&item_name=Development+of+GIMX+Web+API,+GIMX+Android+and+improvement+of+GIMX+Mouse2Axis+translation&currency_code=BRL&source=url)
