@@ -7,7 +7,7 @@ from gimxAPI import *
 import os
 import io
 from werkzeug.utils import secure_filename
-#from registerService import registerService, unregisterService, initZEROCONF
+from registerService import registerService, unregisterService
 
 app = Flask(__name__)
 api = flask_restful.Api(app)
@@ -202,12 +202,13 @@ if __name__=="__main__":
 	GimxAddResource(api,GimxStart,'start')
 	GimxAddResource(api,GimxStop,'stop')
 	GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
+	
 
 	p = os.system('hostname -I | cut -d" " -f1 > /tmp/myipaddress')
 	with open('/tmp/myipaddress','r') as f:
 		IPADDRESS=f.readline().strip()
-		#initZEROCONF(IPADDRESS)
-		#registerService()
-	app.run(host=IPADDRESS, port=80, debug=True)
+	registerService()
+	app.run(host=IPADDRESS, port=80, debug=False) # debug=True makes some threads run twice.
 	#app.run(host="0.0.0.0", port=80, debug=False)  
+	unregisterService()
 
