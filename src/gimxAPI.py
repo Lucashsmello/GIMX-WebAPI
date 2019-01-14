@@ -7,7 +7,7 @@ import time
 #import uinput #pip install python-uinput; modprobe uinput
 from evdev import uinput, ecodes as e
 import evdev
-#from threading import Thread
+import socket
 
 GIMX_EXEC="gimx"
 GIMX_PROC=None
@@ -42,14 +42,29 @@ def isGimxRunningOK():
 	if(GIMX_PROC is None):
 		return False
 
-	#FIXME: make error verification better.
+	dest=("127.0.0.1", 51914)
+
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+	ba=bytearray()
+	ba.append(0)
+	#ba.append(0)
+	sock.sendto(ba, dest)
+	sock.settimeout(0.5)
+	try:
+		data, _ =sock.recvfrom(128)
+		sock.close()
+		return True
+	except socket.timeout:
+		sock.close()
+	
+	'''
 	if(os.path.isfile(GIMX_STDERR_FILE)):
 		with open(GIMX_STDERR_FILE,'r') as f:
 			for line in f:
 				if('error' in line.lower()):
 					return False
-
-	return True
+	'''
+	return False
 
 
 def getGimxOutput():
@@ -62,15 +77,16 @@ def getGimxOutput():
 	if(os.path.isfile(GIMX_STDERR_FILE)):
 		with open(GIMX_STDERR_FILE,'r') as f: 
 			outerror=f.read().replace("[01;31m","").replace("[0m","")
+	spl=outerror.split('\n')
+	outerror="\n".join([spl[0]]+[spl[i] for i in range(1,len(spl)) if spl[i]!=spl[i-1]])
 	return (out1,outerror)	
 
 def startGimx(opts,wait=2):
-	global GIMX_PROC,GIMX_STARTED_OK,GIMX_STDOUT_FILE,GIMX_STDERR_FILE
+	global GIMX_PROC,GIMX_STDOUT_FILE,GIMX_STDERR_FILE
+	opts+=["--src","127.0.0.1:51914"]
 	print("Starting gimx with options: %s" % opts) 
-	#subprocess.call([GIMX_EXEC]+opts)
-	GIMX_STARTED_OK=False
-	#GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts,stderr=PIPE)
 	with open(GIMX_STDERR_FILE,'w') as ferror, open(GIMX_STDOUT_FILE,'w') as fout:
+		#GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts,stderr=PIPE)
 		GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts, stdout=fout, stderr=ferror)
 
 	if(not(wait is None)):	
