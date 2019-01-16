@@ -11,6 +11,7 @@ import socket
 
 GIMX_EXEC="gimx"
 GIMX_PROC=None
+GIMX_EXIT_CODE=0
 
 GIMX_STDERR_FILE="/tmp/gimx-stderr"
 GIMX_STDOUT_FILE="/tmp/gimx-stdout"
@@ -18,6 +19,16 @@ GIMX_STDOUT_FILE="/tmp/gimx-stdout"
 class DeviceNotFound(Exception):
 	pass
 
+
+def getGimxStatus():
+	status_code=0
+	if(isGimxRunningOK()):
+		status_code=2
+	elif(isGimxInitialized()):
+		status_code=1
+	else:
+		status_code=0
+	return status_code
 
 def getGimxUserDataDir():
 	return os.path.expanduser('~')+"/.gimx"

@@ -1,5 +1,5 @@
 import flask
-from flask import Flask
+from flask import Flask, Response
 import flask_restful #pip install flask-restful
 from flask_restful import Resource
 import gimxAPI
@@ -8,12 +8,15 @@ import os
 import io
 from werkzeug.utils import secure_filename
 from registerService import registerService, unregisterService
+from threading import Thread
+from time import sleep
 
 app = Flask(__name__)
 api = flask_restful.Api(app)
 
 APPDATA_DIR=os.path.expanduser('~')+"/.gimx-web"
 LAST_OPTS_FILE=os.path.join(APPDATA_DIR,"last_opts")
+GIMX_API_VERSION=1
 #UPLOAD_FOLDER=os.path.join(APPDATA_DIR,"uploads")
 #app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -29,6 +32,40 @@ def getLastUsedOptions():
 	return opts
 
 
+@app.route("/gimx/api/v%d/streamStatus" % GIMX_API_VERSION)
+def observeStatus():
+    def eventStream():
+		last_status=-1
+		while True:
+			cur_status=getGimxStatus()
+			if(cur_status!=last_status):
+				yield ("data: %d\n\n" % cur_status)
+			last_status=cur_status
+			sleep(0.5)
+    
+    return Response(eventStream(), mimetype="text/event-stream")
+
+class StatusThread(Thread):
+	def __init__(self):
+		super(StatusThread, self).__init__()
+		self.last_status=-1
+	
+	def checkStatus(self):
+		status_code=0
+		if(isGimxRunningOK()):
+			status_code=2
+		elif(isGimxInitialized()):
+			status_code=1
+		else:
+			status_code=0
+	
+		if(self.last_status!=status_code):
+			self.last_status=status_code
+			SOCKETIO.emit({'status':status_code})
+
+	def run(self):
+		self.checkStatus()
+
 class GimxStatus(Resource):
 	"""
 	Gives info about gimx process status.
@@ -43,18 +80,16 @@ class GimxStatus(Resource):
 			messages (string): GIMX stdout. (Exists only if parameter get_output="true")
 			error_messages (string): GIMX stderr. (Exists only if parameter get_output="true")
 		"""
-		status_code=0
-		if(isGimxRunningOK()):
-			status_code=2
-		elif(isGimxInitialized()):
-			status_code=1
-		else:
-			status_code=0
+		status_code=getGimxStatus()
+		ret={'status_code':status_code}
+#		if(status_code==0):
+#			ret['gimx_error_code
 		if 'get_output' in flask.request.args:
 			if(flask.request.args['get_output'].lower()=='true'):
 				(msg,err)=getGimxOutput()
-				return {'status_code':status_code, 'messages':msg, 'error_messages':err}
-		return {'status_code':status_code}
+				ret['messages']=msg
+				ret['error_messages']=err
+		return ret
 
 def handleGimxStart(opts,wait_sec=None):
 	global APPDATA_DIR,LAST_OPTS_FILE
@@ -189,7 +224,7 @@ class GimxConfigFiles(Resource):
 
 
 def GimxAddResource(api,res,route1,route2=None):
-	GIMX_API_VERSION=1
+	global GIMX_API_VERSION
 	R1='/gimx/api/v%d/%s' % (GIMX_API_VERSION, route1)
 	if(route2 is None):
 		api.add_resource(res,R1)
