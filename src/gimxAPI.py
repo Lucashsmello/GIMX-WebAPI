@@ -38,13 +38,10 @@ def getGimxUserConfigFilesDir():
 
 def isGimxInitialized():
 	checkDefunctProcess()
-	for pid in psutil.pids():
-		p = psutil.Process(pid)
-		if p.name() == GIMX_EXEC:
+	for proc in psutil.process_iter(attrs=['name']):
+		if proc.info['name'] == GIMX_EXEC:
 			return True
 	return False
-
-
 
 def isGimxRunningOK():
 	global GIMX_STDERR_FILE
