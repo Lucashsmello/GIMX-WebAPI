@@ -243,7 +243,7 @@ if __name__=="__main__":
 	GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
 	
 	#psutil.net_if_addrs()
-	registerService()
+	registerService(port)
 	#app.run(host=IPADDRESS, port=80, debug=False) # debug=True makes some threads run twice.
 	app.run(host="0.0.0.0", port=port, debug=False)  
 	unregisterService()
