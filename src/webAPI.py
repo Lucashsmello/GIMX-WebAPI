@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 from registerService import registerService, unregisterService
 from threading import Thread
 from time import sleep
+from sys import argv
 
 app = Flask(__name__)
 api = flask_restful.Api(app)
@@ -233,17 +234,17 @@ def GimxAddResource(api,res,route1,route2=None):
 	api.add_resource(res,R1,R2)
 
 if __name__=="__main__":
+	port=80
+	if('-p' in argv):
+		port=int(argv[argv.index('-p')+1])
 	GimxAddResource(api,GimxStatus,'status')
 	GimxAddResource(api,GimxStart,'start')
 	GimxAddResource(api,GimxStop,'stop')
 	GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
 	
-
-	p = os.system('hostname -I | cut -d" " -f1 > /tmp/myipaddress')
-	with open('/tmp/myipaddress','r') as f:
-		IPADDRESS=f.readline().strip()
+	#psutil.net_if_addrs()
 	registerService()
-	app.run(host=IPADDRESS, port=80, debug=False) # debug=True makes some threads run twice.
-	#app.run(host="0.0.0.0", port=80, debug=False)  
+	#app.run(host=IPADDRESS, port=80, debug=False) # debug=True makes some threads run twice.
+	app.run(host="0.0.0.0", port=port, debug=False)  
 	unregisterService()
 
