@@ -20,6 +20,9 @@ class DeviceNotFound(Exception):
 	pass
 
 
+def getGimxVersion():
+	return subprocess.check_output(['gimx','--version']).split()[1:] #Example: ['7.9', 'ARMv6']
+
 def getGimxStatus():
 	status_code=0
 	if(isGimxRunningOK()):

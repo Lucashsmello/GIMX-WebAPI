@@ -11,6 +11,7 @@ from registerService import registerService, unregisterService
 from threading import Thread
 from time import sleep
 from sys import argv
+import subprocess
 
 app = Flask(__name__)
 api = flask_restful.Api(app)
@@ -18,6 +19,9 @@ api = flask_restful.Api(app)
 APPDATA_DIR=os.path.expanduser('~')+"/.gimx-web"
 LAST_OPTS_FILE=os.path.join(APPDATA_DIR,"last_opts")
 GIMX_API_VERSION=1
+VERSION="0.2"
+REPOSITORY_NAME_W="Lucashsmello/GIMX-WebAPI"
+REPOSITORY_NAME_GIMX="matlo/GIMX"
 #UPLOAD_FOLDER=os.path.join(APPDATA_DIR,"uploads")
 #app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -31,6 +35,12 @@ def getLastUsedOptions():
 		print "getLastUsedOptions() failed!"
 		return None
 	return opts
+
+
+def getVersion():
+	global VERSION
+	return {"gimxWebAPI-version":VERSION, "gimx-version":getGimxVersion()[0]}
+
 
 
 @app.route("/gimx/api/v%d/streamStatus" % GIMX_API_VERSION)
@@ -223,6 +233,25 @@ class GimxConfigFiles(Resource):
 		f.save(os.path.join(self.confdir,filename))
 		return {'return_code':0}
 
+class CheckVersion(Resource):
+	def get(self):
+		global REPOSITORY_NAME_W,REPOSITORY_NAME_GIMX
+		myV=getVersion()
+		lastV=[subprocess.check_output(["../auto_updater/getLatestReleaseNumber.sh",r]).strip('v') for r in (REPOSITORY_NAME_W,REPOSITORY_NAME_GIMX)]
+		myV['needs-update'] = myV["gimxWebAPI-version"]!=lastV[0]
+		#myV['needs-update'] = myV["gimxWebAPI-version"]!=lastV[0] or myV["gimx-version"]!=lastV[1] #TODO
+		return myV
+
+class Updater(Resource):
+	def post(self):
+		try:
+			subprocess.check_call("./update.sh", cwd='../auto_updater/')
+			#subprocess.Popen("sleep 2 && ../start_service.sh")
+		except subprocess.CalledProcessError as e:
+			print(e)
+			return {'return_code':e.returncode}
+		return {'return_code':0}
+
 
 def GimxAddResource(api,res,route1,route2=None):
 	global GIMX_API_VERSION
@@ -241,6 +270,8 @@ if __name__=="__main__":
 	GimxAddResource(api,GimxStart,'start')
 	GimxAddResource(api,GimxStop,'stop')
 	GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
+	GimxAddResource(api,CheckVersion,'checkversion')
+	GimxAddResource(api,Updater,'update')
 	
 	#psutil.net_if_addrs()
 	registerService(port)

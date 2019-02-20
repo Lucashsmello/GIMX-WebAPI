@@ -15,6 +15,8 @@ function usage() {
 \t$0 --uninstall\n" 
 }
 
+
+START_SERVICE="y"
 if [ "$#" -ge 1 ]; then
 	if [ "$1" == "--help" ]; then
 		usage
@@ -33,6 +35,10 @@ if [ "$#" -ge 1 ]; then
 
 	if [ "$1" == "-p" ]; then
 		PORT=$2
+	fi
+
+	if [ "$1" == "--dont-start" ]; then
+		START_SERVICE="n"
 	else
 		echo "Invalid argument: $1"
 		usage
@@ -41,7 +47,7 @@ if [ "$#" -ge 1 ]; then
 fi
 
 
-EXEC_PATH=`pwd`/src/webAPI.py
+EXEC_DIR=`pwd`/src
 SERVICE_CONTENT="[Unit]
 Description=GIMX Web Service
 After=network.target
@@ -49,17 +55,13 @@ After=network.target
 [Service]
 Type=simple
 User=$USER
-ExecStart=/usr/bin/env python $EXEC_PATH -p $PORT
+WorkingDirectory=$EXEC_DIR
+ExecStart=/usr/bin/env python webAPI.py -p $PORT
 
 [Install]
 WantedBy=multi-user.target"
 
-if [ -f $SERVICE_PATH ]; then
-    systemctl stop $SERVICE_NAME
-	systemctl disable $SERVICE_NAME
-fi
-
 printf "$SERVICE_CONTENT" > $SERVICE_PATH
-systemctl start $SERVICE_NAME
-systemctl enable $SERVICE_NAME
-
+if [ "$START_SERVICE" == "y" ]; then
+	./start_service.sh
+fi
