@@ -7,5 +7,5 @@ if [ ! -d "$RELEASE_DIR" ]; then
 fi
 V=`./getLatestReleaseNumber.sh $REPOSITORY`
 ./download.sh $REPOSITORY "$RELEASE_DIR/$V"
-cd $RELEASE_DIR/$V && ./install_linux.sh
+cd $RELEASE_DIR/$V/Lucashsmello* && ./install_linux.sh
 
