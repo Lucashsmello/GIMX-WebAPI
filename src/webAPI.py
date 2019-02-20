@@ -237,7 +237,8 @@ class CheckVersion(Resource):
 	def get(self):
 		global REPOSITORY_NAME_W,REPOSITORY_NAME_GIMX
 		myV=getVersion()
-		lastV=[subprocess.check_output(["../auto_updater/getLatestReleaseNumber.sh",r]).strip('v') for r in (REPOSITORY_NAME_W,REPOSITORY_NAME_GIMX)]
+		lastV=[subprocess.check_output(["../auto_updater/getLatestReleaseNumber.sh",r]).strip('\n').strip().strip('v') for r in (REPOSITORY_NAME_W,REPOSITORY_NAME_GIMX)]
+		print(">%s< | >%s<" % (myV["gimxWebAPI-version"], lastV[0]))
 		myV['needs-update'] = myV["gimxWebAPI-version"]!=lastV[0]
 		#myV['needs-update'] = myV["gimxWebAPI-version"]!=lastV[0] or myV["gimx-version"]!=lastV[1] #TODO
 		return myV
