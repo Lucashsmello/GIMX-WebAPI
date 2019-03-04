@@ -19,7 +19,8 @@ api = flask_restful.Api(app)
 APPDATA_DIR=os.path.expanduser('~')+"/.gimx-web"
 LAST_OPTS_FILE=os.path.join(APPDATA_DIR,"last_opts")
 GIMX_API_VERSION=1
-VERSION="0.2"
+with open('../version.txt','r') as f:
+	VERSION=f.read().strip('\n').strip()
 REPOSITORY_NAME_W="Lucashsmello/GIMX-WebAPI"
 REPOSITORY_NAME_GIMX="matlo/GIMX"
 #UPLOAD_FOLDER=os.path.join(APPDATA_DIR,"uploads")
@@ -40,6 +41,26 @@ def getLastUsedOptions():
 def getVersion():
 	global VERSION
 	return {"gimxWebAPI-version":VERSION, "gimx-version":getGimxVersion()[0]}
+
+def compareVersions(V1,V2):
+	"""
+	V1 and V2 types can be str and/or a list of integers. Ex: compareVersions("7.10",[7,9])
+	
+	returns positive integer if V1 is newer;
+	returns 0 if V1 and V2 are equal;
+	returns negative integer if V2 is newer.
+	"""
+	if(type(V1) is str):
+		V1=[int(v) for v in V1.split('.')]
+	if(type(V2) is str):
+		V2=[int(v) for v in V2.split('.')]
+	
+	for l,r in zip(V1,V2):
+		if(l>r):
+			return 1
+		if(r>l):
+			return -1
+	return 0
 
 
 
@@ -234,20 +255,30 @@ class GimxConfigFiles(Resource):
 		return {'return_code':0}
 
 class CheckVersion(Resource):
+	#SUPPORTED_GIMX_VERSION=[7,10]
 	def get(self):
 		global REPOSITORY_NAME_W,REPOSITORY_NAME_GIMX
 		myV=getVersion()
-		lastV=[subprocess.check_output(["../auto_updater/getLatestReleaseNumber.sh",r]).strip('\n').strip().strip('v') for r in (REPOSITORY_NAME_W,REPOSITORY_NAME_GIMX)]
-		print(">%s< | >%s<" % (myV["gimxWebAPI-version"], lastV[0]))
-		myV['needs-update'] = myV["gimxWebAPI-version"]!=lastV[0]
-		#myV['needs-update'] = myV["gimxWebAPI-version"]!=lastV[0] or myV["gimx-version"]!=lastV[1] #TODO
+		if('check' in flask.request.args):
+			lastV=[subprocess.check_output(["../auto_updater/getLatestReleaseNumber.sh",r]).strip('\n').strip().strip('v') for r in (REPOSITORY_NAME_W,REPOSITORY_NAME_GIMX)]
+			#needs_update=compareVersions(CheckVersion.SUPPORTED_GIMX_VERSION,lastV[1])==0 and myV["gimx-version"]!=lastV[1]
+			myV['needs-update'] = myV["gimxWebAPI-version"]!=lastV[0]
 		return myV
 
 class Updater(Resource):
 	def post(self):
 		try:
-			subprocess.check_call("./update.sh", cwd='../auto_updater/')
-			#subprocess.Popen("sleep 2 && ../start_service.sh")
+			cmd=["./update.sh"]
+			if 'file' in flask.request.files:
+				f = flask.request.files['file']
+				fname=f.filename.strip()
+				if(".." in fname or len(fname)==0):
+					return {'return_code':-1}
+				fout_path='/tmp/%s' % fname
+				f.save(fout_path)
+				cmd.append(fout_path)
+				
+			subprocess.check_call(cmd+['../../'], cwd='../auto_updater/')
 		except subprocess.CalledProcessError as e:
 			print(e)
 			return {'return_code':e.returncode}
@@ -264,6 +295,7 @@ def GimxAddResource(api,res,route1,route2=None):
 	api.add_resource(res,R1,R2)
 
 if __name__=="__main__":
+	print("version %s" % VERSION)
 	port=80
 	if('-p' in argv):
 		port=int(argv[argv.index('-p')+1])
@@ -271,7 +303,7 @@ if __name__=="__main__":
 	GimxAddResource(api,GimxStart,'start')
 	GimxAddResource(api,GimxStop,'stop')
 	GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
-	GimxAddResource(api,CheckVersion,'checkversion')
+	GimxAddResource(api,CheckVersion,'version')
 	GimxAddResource(api,Updater,'update')
 	
 	#psutil.net_if_addrs()
