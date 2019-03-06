@@ -47,7 +47,7 @@ On normal execution, this changes the gimx state from 0 (OFF) to 1 (Initializing
 See [**/status**](#status) for more details. Note that normally, after making this request, gimx is not fully running yet.
 You have two options to check GIMX status:
 * Polling requests to **/status** until GIMX is fully running or goes OFF (an error occurs) or
-* Register for GIMX changed status events (see [/streamStatus](streamStatus)).
+* Register for GIMX changed status events (see [**/streamStatus**](#streamstatus)).
 
 #### Parameters
 Has only one parameter:
@@ -90,8 +90,6 @@ Updates the GIMX Web API using specified installer (see parameters).
 #### Response
 * **return_code** (int): 0 if no error occurred.
 
-
 # /streamStatus
 Applications can register to receive event notifications when GIMX status is changed. Responses events are returned with mime-type=text/event-stream. The only data returned is an integer representing the GIMX status (see [**/status**](#status)).
-
 
