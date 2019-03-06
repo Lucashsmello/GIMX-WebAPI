@@ -192,6 +192,13 @@ class GimxStop(Resource):
 		self.post()
 
 	def post(self):
+		"""
+		Stops Gimx if it is running. Currently this works by simply making a shift+ESC event.
+		
+		Response:
+    		return_code (int): returns 0 on success.
+		"""
+
 		msg=""
 		try:
 			if(stopGimx()):
@@ -257,6 +264,11 @@ class GimxConfigFiles(Resource):
 class CheckVersion(Resource):
 	#SUPPORTED_GIMX_VERSION=[7,10]
 	def get(self):
+		"""
+		Response
+			gimxWebAPI-version (string): Version of the Web Server.
+			gimx-version (string): GIMX version.
+		"""
 		global REPOSITORY_NAME_W,REPOSITORY_NAME_GIMX
 		myV=getVersion()
 		if('check' in flask.request.args):
@@ -266,7 +278,17 @@ class CheckVersion(Resource):
 		return myV
 
 class Updater(Resource):
+	"""
+	Responsible for updating/installing/changing versions.
+	"""
 	def post(self):
+		"""
+		POST parameters
+			file: must be a .tar.gz file that contains a 'install.sh' script.
+
+		Response
+			return_code (int): 0 if no error occured.
+		"""
 		try:
 			cmd=["./update.sh"]
 			if 'file' in flask.request.files:

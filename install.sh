@@ -4,14 +4,6 @@
 #pip install -r requirements.txt
 
 LOCK_FILE=/tmp/lock-gimxwebapi-install.lock
-
-if [ -f "$LOCK_FILE" ]; then
-	echo "$LOCK_FILE exists"
-	exit 2
-fi
-
-touch $LOCK_FILE
-
 SERVICE_NAME=gimx-web.service
 SERVICE_PATH=/etc/systemd/system/$SERVICE_NAME
 PORT=80
@@ -19,11 +11,10 @@ V=`cat version.txt`
 
 function usage() {
 	printf "Usage:\
-\t$0\n\
-\t$0 -p <PORT>\n\
-\t$0 --help\n\
-\t$0 --uninstall\n 
-\t$0 --install-dir DIRECTORY\n"
+\t$0
+\t$0 --help
+\t$0 --uninstall
+\t$0 [-p <PORT>] [--install-dir <DIRECTORY>] [--dont-install-gimx]\n"
 }
 
 function quit() {
@@ -31,13 +22,20 @@ function quit() {
 	exit $1
 }
 
-START_SERVICE="y"
 if [ "$#" -eq 1 ]; then
 	if [ "$1" == "--help" ]; then
 		usage
-		quit 0
+		exit
 	fi
+fi
 
+if [ -f "$LOCK_FILE" ]; then
+	echo "$LOCK_FILE exists"
+	exit 2
+fi
+touch $LOCK_FILE
+
+if [ "$#" -eq 1 ]; then
 	if [ "$1" == "--uninstall" ]; then
 		echo "Uninstalling..."
 		if [ -f $SERVICE_PATH ]; then
@@ -47,33 +45,46 @@ if [ "$#" -eq 1 ]; then
 		fi
 		quit 0
 	fi
-
-	if [ "$1" == "-p" ]; then
-		PORT=$2
-	else
-		echo "Invalid argument: $1"
-		usage
-		quit 1
-	fi
 fi
 
-if [ "$#" -eq 2 ]; then
-	if [ "$1" == "--install-dir" ]; then
-		INSTALL_DIR=$2/$V
-		mkdir -p $INSTALL_DIR
-		EXEC_DIR=`realpath $INSTALL_DIR`/src
-		if ! cp -r src auto_updater version.txt $INSTALL_DIR/.; then
-			quit 3
-		fi
-	else
-		echo "Invalid argument: $1"
-		usage
-		quit 1
-	fi
-else
+INSTALL_DIR=""
+INSTALL_GIMX=y
+
+while [[ $# -gt 0 ]]
+do
+	key="$1"
+
+	case $key in
+		-p|--port)
+			PORT="$2"
+			shift # past argument
+			shift # past value
+		;;
+		--install-dir)
+			INSTALL_DIR="$2/$V"
+			shift # past argument
+			shift # past value
+		;;
+		--dont-install-gimx)
+			INSTALL_GIMX=n
+			shift
+		;;
+		*)	# unknown option
+			echo "Invalid option: $1"
+			quit 1
+		;;
+	esac
+done
+
+if [ -z "$INSTALL_DIR" ]; then
 	EXEC_DIR=`pwd`/src
+else
+	mkdir -p $INSTALL_DIR
+	EXEC_DIR=`realpath $INSTALL_DIR`/src
+	if ! cp -r src auto_updater version.txt $INSTALL_DIR/.; then
+		quit 3
+	fi
 fi
-
 
 
 echo "EXEC_DIR: $EXEC_DIR"
@@ -93,16 +104,18 @@ WantedBy=multi-user.target"
 
 if systemctl is-active --quiet $SERVICE_NAME; then
 	sleep 2
-	for f in build/gimx*.deb; do
-		if [ -e "$f" ]; then
-			#systemctl stop $SERVICE_NAME
-			echo "installing $f"
-			dpkg -i $f
-		else
-			echo "Error in installing gimx"
-		fi
-		break
-	done
+	if [ "$INSTALL_GIMX" = "y" ]; then
+		for f in build/gimx*.deb; do
+			if [ -e "$f" ]; then
+				#systemctl stop $SERVICE_NAME
+				echo "installing $f"
+				dpkg -i $f
+			else
+				echo "Error in installing gimx"
+			fi
+			break
+		done
+	fi
 fi
 
 printf "$SERVICE_CONTENT" > $SERVICE_PATH
