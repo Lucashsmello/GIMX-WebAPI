@@ -19,7 +19,7 @@ It is recommended that you specify an arbitrary directory to install with option
 ```
 /install.sh --install-dir /path/to/gimx-webapi/releases/
 ```
-Run `./install.sh --help` for more details):
+Run `./install.sh --help` for more details:
 
 To uninstall, run with `--uninstall` as an option:
 ```
