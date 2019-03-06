@@ -11,14 +11,19 @@ sudo apt install python python-pip
 pip install -r requirements.txt
 ```
 
-Finally, run install_linux.sh:
+Finally, run install.sh:
 ```
-bash install_linux.sh
+./install.sh
 ```
+It is recommended that you specify an arbitrary directory to install with option `--install-dir`.
+```
+/install.sh --install-dir /path/to/gimx-webapi/releases/
+```
+Run `./install.sh --help` for more details):
 
-To uninstall, run with --uninstall as an option:
+To uninstall, run with `--uninstall` as an option:
 ```
-bash install_linux.sh --uninstall
+./install.sh --uninstall
 ```
 
 See documentation at [doc/webapi.md](doc/webapi.md).
