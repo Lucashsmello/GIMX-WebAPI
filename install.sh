@@ -88,9 +88,11 @@ fi
 
 
 echo "EXEC_DIR: $EXEC_DIR"
-SERVICE_CONTENT="[Unit]
+SERVICE_CONTENT="\
+[Unit]
 Description=GIMX Web Service
-After=network.target
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple

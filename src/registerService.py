@@ -13,18 +13,22 @@ def unregisterService():
 def sendHIMessage(address,responseMessage=None):
 	global UDP_PORT
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-	if(address=='<broadcast>'):
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-	if(responseMessage is None):
-		sock.sendto("megimxservice", (address, UDP_PORT))
-	else:
-		sock.sendto("megimxservice:%s" % str(responseMessage), (address, UDP_PORT))
+	try:
+		if(address=='<broadcast>'):
+			sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+			address='255.255.255.255' #'<broadcast>' is not translated properly sometimes. We should do it manually.
+		if(responseMessage is None):
+			sock.sendto("megimxservice", (address, UDP_PORT))
+		else:
+			sock.sendto("megimxservice:%s" % str(responseMessage), (address, UDP_PORT))
+	except Exception as e:
+		print e
 	sock.close()
 
 def listenBroadCast(responseMessage=None):
 	global DOLISTEN,UDP_PORT
 	DOLISTEN=True
-	
+
 	sendHIMessage('<broadcast>')
 	client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
 	client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -43,12 +47,4 @@ def registerService(responseMessage=None):
 
 if __name__=="__main__":
 	listenBroadCast()
-
-#try:
-#    while True:
-#        sleep(0.1)
-#except KeyboardInterrupt:
-#    pass
-#finally:
-    
 

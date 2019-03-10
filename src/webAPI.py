@@ -77,27 +77,6 @@ def observeStatus():
     
     return Response(eventStream(), mimetype="text/event-stream")
 
-class StatusThread(Thread):
-	def __init__(self):
-		super(StatusThread, self).__init__()
-		self.last_status=-1
-	
-	def checkStatus(self):
-		status_code=0
-		if(isGimxRunningOK()):
-			status_code=2
-		elif(isGimxInitialized()):
-			status_code=1
-		else:
-			status_code=0
-	
-		if(self.last_status!=status_code):
-			self.last_status=status_code
-			SOCKETIO.emit({'status':status_code})
-
-	def run(self):
-		self.checkStatus()
-
 class GimxStatus(Resource):
 	"""
 	Gives info about gimx process status.
@@ -107,8 +86,8 @@ class GimxStatus(Resource):
 		Response
 			status_code (int):
 				0: No gimx process exists;
-				1: if is running and working normally;
-				2: Gimx is initialized but not fully working yet.
+				1: Gimx is initialized but not fully working yet.
+				2: if is running and working normally;
 			messages (string): GIMX stdout. (Exists only if parameter get_output="true")
 			error_messages (string): GIMX stderr. (Exists only if parameter get_output="true")
 		"""
@@ -287,7 +266,7 @@ class Updater(Resource):
 			file: must be a .tar.gz file that contains a 'install.sh' script.
 
 		Response
-			return_code (int): 0 if no error occured.
+			return_code (int): 0 if no error occurred.
 		"""
 		try:
 			cmd=["./update.sh"]
