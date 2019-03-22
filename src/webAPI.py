@@ -286,6 +286,13 @@ class Updater(Resource):
 		return {'return_code':0}
 
 
+class Configurator(Resource):
+	def get(self):
+		config_params=GetConfigurationParameters()
+		print config_params
+		return config_params
+
+
 def GimxAddResource(api,res,route1,route2=None):
 	global GIMX_API_VERSION
 	R1='/gimx/api/v%d/%s' % (GIMX_API_VERSION, route1)
@@ -306,6 +313,7 @@ if __name__=="__main__":
 	GimxAddResource(api,GimxConfigFiles,'configfile','configfile/<string:name>')
 	GimxAddResource(api,CheckVersion,'version')
 	GimxAddResource(api,Updater,'update')
+	GimxAddResource(api,Configurator,'curconfig')
 	
 	#psutil.net_if_addrs()
 	registerService(port)

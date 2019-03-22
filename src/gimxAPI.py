@@ -2,6 +2,7 @@ import os
 import psutil # pip install psutil
 import subprocess
 from subprocess import PIPE
+import struct
 
 import time
 #import uinput #pip install python-uinput; modprobe uinput
@@ -12,6 +13,7 @@ import socket
 GIMX_EXEC="gimx"
 GIMX_PROC=None
 GIMX_EXIT_CODE=0
+GIMX_PORT=51914
 
 GIMX_STDERR_FILE="/tmp/gimx-stderr"
 GIMX_STDOUT_FILE="/tmp/gimx-stdout"
@@ -47,13 +49,13 @@ def isGimxInitialized():
 	return False
 
 def isGimxRunningOK():
-	global GIMX_STDERR_FILE
+	global GIMX_STDERR_FILE,GIMX_PORT
 	if(isGimxInitialized()==False):
 		return False
 	if(GIMX_PROC is None):
 		return False
 
-	dest=("127.0.0.1", 51914)
+	dest=("127.0.0.1", GIMX_PORT)
 
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
 	ba=bytearray()
@@ -62,7 +64,7 @@ def isGimxRunningOK():
 	sock.sendto(ba, dest)
 	sock.settimeout(0.5)
 	try:
-		data, _ =sock.recvfrom(128)
+		data, _ =sock.recvfrom(32)
 		sock.close()
 		return True
 	except socket.timeout:
@@ -149,5 +151,27 @@ def stopGimx():
 			return True
 	return False
 
-#print stopGimx()
-#print startGimx("-p /dev/ttyUSB0 --config Overwatch_lmello.xml --force-updates --refresh 5 --curses --window-events".split())
+def GetConfigurationParameters():
+	global GIMX_PORT
+	dest=("127.0.0.1", GIMX_PORT)
+	data = bytearray([4])
+	sock = socket.socket(socket.AF_INET, # Internet
+		                  socket.SOCK_DGRAM) # UDP
+	sock.sendto(data, dest)
+	sock.settimeout(0.8)
+	try:
+		data, _ = sock.recvfrom(128)
+		data=bytearray(data)[1:] # first byte is always the packet code (4).
+		#print ">%s<" % str(''.join('{:02x}'.format(x) for x in data))
+		config={}
+		#config['sensibility'] = struct.unpack('f',data[0:4])[0]
+		config['sensibility'], config['dzx'], config['dzy']=struct.unpack('>fhh',data[0:8])
+		sock.close()
+		return config
+	except socket.timeout:
+		sock.close()
+	return None
+
+#def SetConfigurationParameters(sensibility=-1,dzx=32767,dzy=32767):
+
+
