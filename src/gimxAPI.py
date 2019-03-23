@@ -172,6 +172,14 @@ def GetConfigurationParameters():
 		sock.close()
 	return None
 
-#def SetConfigurationParameters(sensibility=-1,dzx=32767,dzy=32767):
+def SetConfigurationParameters(sensibility=-1,dzx=32767,dzy=32767):
+	global GIMX_PORT
+	dest = ("127.0.0.1", GIMX_PORT)
+	data = bytearray(struct.pack('>cfhh',3,sensibility,dzx,dzy))
+	sock = socket.socket(socket.AF_INET, # Internet
+		                  socket.SOCK_DGRAM) # UDP
+	sock.sendto(data, dest)
+	sock.close()
+	
 
 
