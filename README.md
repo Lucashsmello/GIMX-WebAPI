@@ -17,7 +17,7 @@ Finally, run install.sh:
 ```
 It is recommended that you specify an arbitrary directory to install with option `--install-dir`.
 ```
-/install.sh --install-dir /path/to/gimx-webapi/releases/
+./install.sh --install-dir /path/to/gimx-webapi/releases/
 ```
 Run `./install.sh --help` for more details.
 
