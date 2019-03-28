@@ -289,21 +289,25 @@ class Updater(Resource):
 class Configurator(Resource):
 	def get(self):
 		config_params=GetConfigurationParameters()
-		print config_params
 		return config_params
 
 	def post(self):
 		sensibility=-1
 		dzx=32767
 		dzy=32767
+		save=False
 		if 'sensibility' in flask.request.form:
 			sensibility = float(flask.request.form['sensibility'])
 		if 'dzx' in flask.request.form:
 			dzx = int(flask.request.form['dzx'])
 		if 'dzy' in flask.request.form:
 			dzy = int(flask.request.form['dzy'])
+		if 'save' in flask.request.form:
+			save = flask.request.form['save'].lower()=='true'
 
 		SetConfigurationParameters(sensibility,dzx,dzy)
+		if(save):
+			saveConfigurationParameters()
 		return {'return_code':0}
 		
 		

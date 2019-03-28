@@ -154,7 +154,7 @@ def stopGimx():
 def GetConfigurationParameters():
 	global GIMX_PORT
 	dest=("127.0.0.1", GIMX_PORT)
-	data = bytearray([4])
+	data = bytearray([4]) # E_NETWORK_PACKET_GETCONFIG
 	sock = socket.socket(socket.AF_INET, # Internet
 		                  socket.SOCK_DGRAM) # UDP
 	sock.sendto(data, dest)
@@ -164,7 +164,6 @@ def GetConfigurationParameters():
 		data=bytearray(data)[1:] # first byte is always the packet code (4).
 		#print ">%s<" % str(''.join('{:02x}'.format(x) for x in data))
 		config={}
-		#config['sensibility'] = struct.unpack('f',data[0:4])[0]
 		config['sensibility'], config['dzx'], config['dzy']=struct.unpack('>fhh',data[0:8])
 		sock.close()
 		return config
@@ -174,12 +173,20 @@ def GetConfigurationParameters():
 
 def SetConfigurationParameters(sensibility=-1,dzx=32767,dzy=32767):
 	global GIMX_PORT
+	if(sensibility==-1 and dzx==32767 and dzy==32767): return
 	dest = ("127.0.0.1", GIMX_PORT)
-	data = bytearray(struct.pack('>cfhh',3,sensibility,dzx,dzy))
+	data = bytearray(struct.pack('>Bfhh',3,sensibility,dzx,dzy))
 	sock = socket.socket(socket.AF_INET, # Internet
 		                  socket.SOCK_DGRAM) # UDP
 	sock.sendto(data, dest)
 	sock.close()
 	
-
+def saveConfigurationParameters():
+	global GIMX_PORT
+	dest = ("127.0.0.1", GIMX_PORT)
+	data = bytearray([5]) # E_NETWORK_PACKET_SAVECALIBRATION
+	sock = socket.socket(socket.AF_INET, # Internet
+		                  socket.SOCK_DGRAM) # UDP
+	sock.sendto(data, dest)
+	sock.close()
 
