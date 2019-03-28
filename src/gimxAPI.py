@@ -6,8 +6,6 @@ import struct
 
 import time
 #import uinput #pip install python-uinput; modprobe uinput
-from evdev import uinput, ecodes as e
-import evdev
 import socket
 
 GIMX_EXEC="gimx"
@@ -42,14 +40,18 @@ def getGimxUserConfigFilesDir():
 	return os.path.join(getGimxUserDataDir(),"config")
 
 def isGimxInitialized():
+	global GIMX_EXEC,GIMX_PROC
 	checkDefunctProcess()
+	'''
 	for proc in psutil.process_iter(attrs=['name']):
 		if proc.info['name'] == GIMX_EXEC:
 			return True
 	return False
+	'''
+	return not (GIMX_PROC is None)
 
 def isGimxRunningOK():
-	global GIMX_STDERR_FILE,GIMX_PORT
+	global GIMX_STDERR_FILE,GIMX_PORT, GIMX_PROC
 	if(isGimxInitialized()==False):
 		return False
 	if(GIMX_PROC is None):
@@ -95,8 +97,8 @@ def getGimxOutput():
 	return (out1,outerror)	
 
 def startGimx(opts,wait=2):
-	global GIMX_PROC,GIMX_STDOUT_FILE,GIMX_STDERR_FILE
-	opts+=["--src","127.0.0.1:51914"]
+	global GIMX_PROC,GIMX_STDOUT_FILE,GIMX_STDERR_FILE,GIMX_PORT
+	opts+=["--src","127.0.0.1:%d" % GIMX_PORT]
 	print("Starting gimx with options: %s" % opts) 
 	with open(GIMX_STDERR_FILE,'w') as ferror, open(GIMX_STDOUT_FILE,'w') as fout:
 		#GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts,stderr=PIPE)
@@ -108,7 +110,9 @@ def startGimx(opts,wait=2):
 			return isGimxRunningOK()
 	return isGimxInitialized()
 
+'''
 def openKeyboardDevice(): #TODO: open all keyboard devices.
+	import evdev
 	devs=[evdev.InputDevice(fn) for fn in evdev.list_devices()]
 	ret=None
 	for d in devs:
@@ -122,6 +126,7 @@ def openKeyboardDevice(): #TODO: open all keyboard devices.
 			d.close()
 	#print(ret.fn, ret.name, ret.phys)
 	return ret
+'''
 
 def checkDefunctProcess():
 	global GIMX_PROC,GIMX_STDERR_FILE
@@ -134,7 +139,9 @@ def checkDefunctProcess():
 	GIMX_PROC=None
 
 def stopGimx():
-	#ui=evdev.InputDevice('/dev/input/event0')
+	global GIMX_PORT
+	'''
+	from evdev import uinput, ecodes as e
 	ui=openKeyboardDevice()
 	if(ui is None):
 		raise DeviceNotFound("Keyboard not found.")
@@ -144,9 +151,15 @@ def stopGimx():
 	ui.write(e.EV_KEY, e.KEY_ESC, 0)
 	ui.write(e.EV_SYN, e.SYN_REPORT, 0)
 	ui.close()
-
-	for _ in range(4):
-		time.sleep(0.25)
+	'''
+	dest=("127.0.0.1", GIMX_PORT)
+	data = bytearray([2]) # E_NETWORK_PACKET_EXIT
+	sock = socket.socket(socket.AF_INET, # Internet
+		                  socket.SOCK_DGRAM) # UDP
+	sock.sendto(data, dest)
+	sock.close()
+	for _ in range(8):
+		time.sleep(0.125)
 		if(not isGimxInitialized()):
 			return True
 	return False

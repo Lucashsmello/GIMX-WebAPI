@@ -74,7 +74,6 @@ def observeStatus():
 				yield ("data: %d\n\n" % cur_status)
 			last_status=cur_status
 			sleep(0.5)
-    
     return Response(eventStream(), mimetype="text/event-stream")
 
 class GimxStatus(Resource):
