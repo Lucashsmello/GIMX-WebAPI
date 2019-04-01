@@ -8,6 +8,7 @@ SERVICE_NAME=gimx-web.service
 SERVICE_PATH=/etc/systemd/system/$SERVICE_NAME
 PORT=80
 V=`cat version.txt`
+ARCH=`dpkg --print-architecture`
 
 function usage() {
 	printf "Usage:\
@@ -49,6 +50,7 @@ fi
 
 INSTALL_DIR=""
 INSTALL_GIMX=y
+MOD=""
 
 while [[ $# -gt 0 ]]
 do
@@ -67,6 +69,11 @@ do
 		;;
 		--dont-install-gimx)
 			INSTALL_GIMX=n
+			shift
+		;;
+		--mod)
+			MOD=$2
+			shift
 			shift
 		;;
 		*)	# unknown option
@@ -103,21 +110,25 @@ ExecStart=/usr/bin/env python webAPI.py -p $PORT
 [Install]
 WantedBy=multi-user.target"
 
-
 if systemctl is-active --quiet $SERVICE_NAME; then
 	sleep 2
-	if [ "$INSTALL_GIMX" = "y" ]; then
-		for f in build/gimx*.deb; do
-			if [ -e "$f" ]; then
-				#systemctl stop $SERVICE_NAME
-				echo "installing $f"
-				dpkg -i $f
-			else
-				echo "Error in installing gimx"
+fi
+
+if [ "$INSTALL_GIMX" = "y" ]; then
+	for f in build/gimx*$ARCH*$MOD*.deb; do
+		if [ -e "$f" ]; then
+			#systemctl stop $SERVICE_NAME
+			echo "installing $f"
+			if ! dpkg -i $f; then
+				echo "Error in installing gimx."
+				quit 4
 			fi
-			break
-		done
-	fi
+		else
+			echo "Error in installing gimx. No deb file found."
+			quit 4
+		fi
+		break
+	done
 fi
 
 printf "$SERVICE_CONTENT" > $SERVICE_PATH

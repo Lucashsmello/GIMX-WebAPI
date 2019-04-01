@@ -24,9 +24,9 @@ echo "INSTALLER_PATH: $INSTALLER_PATH"
 echo "INSTALL_DIR: $INSTALL_DIR"
 
 $OPTS=""
-if [ -f "$HOME/.dont-install-gimx" ]; then
-	$OPTS="--dont-install-gimx"
-fi
+#if [ -f "$HOME/.dont-install-gimx" ]; then
+#	$OPTS="--dont-install-gimx"
+#fi
 
 #V=`tar zxvf $INSTALLER_PATH version.txt -O`
 mkdir -p /tmp/gimx-web-installer
