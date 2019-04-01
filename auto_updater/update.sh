@@ -23,7 +23,7 @@ INSTALL_DIR=`realpath $INSTALL_DIR`
 echo "INSTALLER_PATH: $INSTALLER_PATH"
 echo "INSTALL_DIR: $INSTALL_DIR"
 
-$OPTS=""
+OPTS=""
 #if [ -f "$HOME/.dont-install-gimx" ]; then
 #	$OPTS="--dont-install-gimx"
 #fi
