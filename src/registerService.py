@@ -30,7 +30,7 @@ def listenBroadCast(responseMessage=None):
 	global DOLISTEN,UDP_PORT
 	DOLISTEN=True
 
-	sendHIMessage('<broadcast>')
+	sendHIMessage('<broadcast>',responseMessage)
 	client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
 	client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 	client.bind(("", UDP_PORT))
