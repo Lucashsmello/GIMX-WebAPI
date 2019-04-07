@@ -169,7 +169,7 @@ class GimxStart(Resource):
 
 class GimxStop(Resource):
 	def get(self):
-		self.post()
+		return self.post()
 
 	def post(self):
 		"""
