@@ -33,7 +33,7 @@ def getLastUsedOptions():
 			with open(LAST_OPTS_FILE) as f:
 				opts=f.readline()
 	except IOError:
-		print "getLastUsedOptions() failed!"
+		print("getLastUsedOptions() failed!")
 		return None
 	return opts
 
@@ -63,10 +63,9 @@ def compareVersions(V1,V2):
 	return 0
 
 
-
 @app.route("/gimx/api/v%d/streamStatus" % GIMX_API_VERSION)
 def observeStatus():
-    def eventStream():
+	def eventStream():
 		last_status=-1
 		while True:
 			cur_status=getGimxStatus()
@@ -74,7 +73,10 @@ def observeStatus():
 				yield ("data: %d\n\n" % cur_status)
 			last_status=cur_status
 			sleep(0.5)
-    return Response(eventStream(), mimetype="text/event-stream")
+	R=Response(eventStream(), mimetype="text/event-stream")
+	R.headers["HTTP/1.1 200 OK"] = "HTTP/1.1 200 OK"
+	R.headers['Content-Type'] = 'text/event-stream'
+	return R
 
 class GimxStatus(Resource):
 	"""

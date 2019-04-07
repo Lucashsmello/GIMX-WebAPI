@@ -52,10 +52,12 @@ def isGimxInitialized():
 
 def isGimxRunningOK():
 	global GIMX_STDERR_FILE,GIMX_PORT, GIMX_PROC
+	'''
 	if(isGimxInitialized()==False):
 		return False
 	if(GIMX_PROC is None):
 		return False
+	'''
 
 	dest=("127.0.0.1", GIMX_PORT)
 

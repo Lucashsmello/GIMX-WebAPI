@@ -18,11 +18,12 @@ def sendHIMessage(address,responseMessage=None):
 			sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 			address='255.255.255.255' #'<broadcast>' is not translated properly sometimes. We should do it manually.
 		if(responseMessage is None):
-			sock.sendto("megimxservice", (address, UDP_PORT))
+			sock.sendto(b"megimxservice", (address, UDP_PORT))
 		else:
-			sock.sendto("megimxservice:%s" % str(responseMessage), (address, UDP_PORT))
+			msg="megimxservice:%s" % str(responseMessage)
+			sock.sendto(msg.encode('utf-8'), (address, UDP_PORT))
 	except Exception as e:
-		print e
+		print(e)
 	sock.close()
 
 def listenBroadCast(responseMessage=None):
@@ -36,7 +37,7 @@ def listenBroadCast(responseMessage=None):
 	while DOLISTEN:
 		data, addr = client.recvfrom(1024)
 		#print("received message from %s: %s" % (addr,data))
-		if(data=="whoGIMXAPISERVICE"):
+		if(data==b"whoGIMXAPISERVICE"):
 			sendHIMessage(addr[0],responseMessage)
 	client.close()
 
