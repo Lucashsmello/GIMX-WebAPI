@@ -2,7 +2,9 @@ import socket
 from sys import argv
 from time import sleep
 from threading import Thread
+import logging
 
+LOGGER=logging.getLogger('gimx_webapi')
 DOLISTEN=True
 UDP_PORT=51915
 
@@ -23,7 +25,7 @@ def sendHIMessage(address,responseMessage=None):
 			msg="megimxservice:%s" % str(responseMessage)
 			sock.sendto(msg.encode('utf-8'), (address, UDP_PORT))
 	except Exception as e:
-		print(e)
+		LOGGER.error('sendHIMessage("%s","%s"): %s' % (str(address),str(responseMessage),str(e))) 
 	sock.close()
 
 def listenBroadCast(responseMessage=None):
@@ -36,7 +38,7 @@ def listenBroadCast(responseMessage=None):
 	client.bind(("", UDP_PORT))
 	while DOLISTEN:
 		data, addr = client.recvfrom(1024)
-		#print("received message from %s: %s" % (addr,data))
+		LOGGER.info("Received message from %s: %s" % (addr,data))
 		if(data==b"whoGIMXAPISERVICE"):
 			sendHIMessage(addr[0],responseMessage)
 	client.close()

@@ -84,14 +84,16 @@ do
 done
 
 if [ -z "$INSTALL_DIR" ]; then
-	EXEC_DIR=`pwd`/src
+	INSTALL_DIR="`pwd`"
+	EXEC_DIR="$INSTALL_DIR/src"
 else
-	mkdir -p $INSTALL_DIR
-	EXEC_DIR=`realpath $INSTALL_DIR`/src
+	mkdir -p "$INSTALL_DIR"
+	EXEC_DIR="`realpath $INSTALL_DIR`/src"
 	if ! cp -r src auto_updater version.txt $INSTALL_DIR/.; then
 		quit 3
 	fi
 fi
+mkdir -p "$INSTALL_DIR/log"
 
 
 echo "EXEC_DIR: $EXEC_DIR"

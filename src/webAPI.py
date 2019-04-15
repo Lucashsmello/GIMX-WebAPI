@@ -1,5 +1,5 @@
 import flask
-from flask import Flask, Response
+from flask import Flask, Response,request
 import flask_restful #pip install flask-restful
 from flask_restful import Resource
 import gimxAPI
@@ -12,6 +12,9 @@ from threading import Thread
 from time import sleep
 from sys import argv
 import subprocess
+import logging
+import logging.handlers
+from waitress import serve
 
 app = Flask(__name__)
 api = flask_restful.Api(app)
@@ -26,6 +29,44 @@ REPOSITORY_NAME_GIMX="matlo/GIMX"
 #UPLOAD_FOLDER=os.path.join(APPDATA_DIR,"uploads")
 #app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+def configureLogger():
+	global LOGGER,app
+	# create logger
+	LOGGER = logging.getLogger('gimx_webapi')
+	LOGGER.setLevel(logging.DEBUG)
+
+	h = logging.handlers.RotatingFileHandler('../log/gimx_webapi.log',maxBytes=330000,backupCount=2)
+	h.setLevel(logging.INFO)
+
+	# create formatter
+	formatter = logging.Formatter('%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s', "%Y-%m-%d %H:%M:%S")
+	h.setFormatter(formatter)
+	LOGGER.addHandler(h)
+	app.logger.setLevel(logging.INFO)
+	app.logger.handlers=[h]
+
+	h = logging.StreamHandler()
+	h.setLevel(logging.DEBUG)
+	h.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+	LOGGER.addHandler(h)
+
+@app.before_request
+def pre_request_logging():
+	if(len(request.values)==0):
+		#request.remote_addr
+		msg=[request.method,request.url]
+	else:
+		vals=', '.join(['%s:%s' % (str(key),str(request.values[key])) for key in request.values])
+		vals='{'+vals+'}'
+		msg=[request.method,request.url,vals]
+	app.logger.info('\t'.join(msg))
+		#', '.join([': '.join(x) for x in request.headers])]))
+
+@app.after_request
+def after_request_logging(response):
+	app.logger.info(('%s response: ' % str(request.url_rule)) + response.status + ', ' + response.data.decode('utf-8'))
+	return response
+
 def getLastUsedOptions():
 	opts=None
 	try:
@@ -33,7 +74,7 @@ def getLastUsedOptions():
 			with open(LAST_OPTS_FILE) as f:
 				opts=f.readline()
 	except IOError:
-		print("getLastUsedOptions() failed!")
+		LOGGER.warning("getLastUsedOptions() failed!")
 		return None
 	return opts
 
@@ -115,7 +156,7 @@ def handleGimxStart(opts,wait_sec=None):
 		with open(LAST_OPTS_FILE,'w') as f:
 			f.write(opts)
 	except IOError:
-		print('could not write used options in a file!')
+		LOGGER.warning('could not write used options in a file!')
 	return 0
 
 
@@ -282,7 +323,7 @@ class Updater(Resource):
 				
 			subprocess.check_call(cmd+['../../'], cwd='../auto_updater/')
 		except subprocess.CalledProcessError as e:
-			print(e)
+			LOGGER.error(str(e))
 			return {'return_code':e.returncode}
 		return {'return_code':0}
 
@@ -297,20 +338,22 @@ class Configurator(Resource):
 		dzx=32767
 		dzy=32767
 		save=False
-		if 'sensibility' in flask.request.form:
-			sensibility = float(flask.request.form['sensibility'])
-		if 'dzx' in flask.request.form:
-			dzx = int(flask.request.form['dzx'])
-		if 'dzy' in flask.request.form:
-			dzy = int(flask.request.form['dzy'])
-		if 'save' in flask.request.form:
-			save = flask.request.form['save'].lower()=='true'
+		fform=flask.request.form
+		if 'sensibility' in fform:
+			sensibility = float(fform['sensibility'])
+		if 'dzx' in fform:
+			dzx = int(fform['dzx'])
+		if 'dzy' in fform:
+			dzy = int(fform['dzy'])
+		if 'save' in fform:
+			save = fform['save'].lower()=='true'
+			if((not save) and fform['save'].lower()!='false'):
+				LOGGER.warning('Configurator: invalid value for save "%s"' % fform['save'])
 
 		SetConfigurationParameters(sensibility,dzx,dzy)
 		if(save):
 			saveConfigurationParameters()
 		return {'return_code':0}
-		
 		
 
 
@@ -324,7 +367,8 @@ def GimxAddResource(api,res,route1,route2=None):
 	api.add_resource(res,R1,R2)
 
 if __name__=="__main__":
-	print("version %s" % VERSION)
+	configureLogger()
+	LOGGER.info("version %s" % VERSION)
 	port=80
 	if('-p' in argv):
 		port=int(argv[argv.index('-p')+1])
@@ -338,7 +382,7 @@ if __name__=="__main__":
 	
 	#psutil.net_if_addrs()
 	registerService(port)
-	#app.run(host=IPADDRESS, port=80, debug=False) # debug=True makes some threads run twice.
-	app.run(host="0.0.0.0", port=port, debug=False)  
+	serve(app,host="0.0.0.0", port=port)
+	#app.run(host="0.0.0.0", port=port, debug=False)  
 	unregisterService()
 

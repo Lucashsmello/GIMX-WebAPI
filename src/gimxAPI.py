@@ -7,6 +7,7 @@ import struct
 import time
 #import uinput #pip install python-uinput; modprobe uinput
 import socket
+import logging
 
 GIMX_EXEC="gimx"
 GIMX_PROC=None
@@ -15,6 +16,8 @@ GIMX_PORT=51914
 
 GIMX_STDERR_FILE="/tmp/gimx-stderr"
 GIMX_STDOUT_FILE="/tmp/gimx-stdout"
+
+LOGGER=logging.getLogger('gimx_webapi')
 
 class DeviceNotFound(Exception):
 	pass
@@ -101,7 +104,7 @@ def getGimxOutput():
 def startGimx(opts,wait=2):
 	global GIMX_PROC,GIMX_STDOUT_FILE,GIMX_STDERR_FILE,GIMX_PORT
 	opts+=["--src","127.0.0.1:%d" % GIMX_PORT]
-	print("Starting gimx with options: %s" % opts) 
+	LOGGER.info("Starting gimx with options: %s" % opts) 
 	with open(GIMX_STDERR_FILE,'w') as ferror, open(GIMX_STDOUT_FILE,'w') as fout:
 		#GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts,stderr=PIPE)
 		GIMX_PROC = subprocess.Popen([GIMX_EXEC]+opts, stdout=fout, stderr=ferror)
@@ -136,7 +139,7 @@ def checkDefunctProcess():
 		return
 	if(GIMX_PROC.poll() is None):
 		return
-	print("GIMX terminated with return code: "+str(GIMX_PROC.returncode))
+	LOGGER.info("GIMX terminated with return code: "+str(GIMX_PROC.returncode))
 	
 	GIMX_PROC=None
 
@@ -167,6 +170,12 @@ def stopGimx():
 	return False
 
 def GetConfigurationParameters():
+	"""
+	If successful, returns a dict with all settings.
+	Current Valid settings are: 'sensibility', 'dzx' and 'dzy'.
+
+	None is returned when failed.
+	"""
 	global GIMX_PORT
 	dest=("127.0.0.1", GIMX_PORT)
 	data = bytearray([4]) # E_NETWORK_PACKET_GETCONFIG
@@ -189,6 +198,7 @@ def GetConfigurationParameters():
 def SetConfigurationParameters(sensibility=-1,dzx=32767,dzy=32767):
 	global GIMX_PORT
 	if(sensibility==-1 and dzx==32767 and dzy==32767): return
+
 	dest = ("127.0.0.1", GIMX_PORT)
 	data = bytearray(struct.pack('>Bfhh',3,sensibility,dzx,dzy))
 	sock = socket.socket(socket.AF_INET, # Internet
