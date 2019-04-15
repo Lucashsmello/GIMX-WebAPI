@@ -172,7 +172,7 @@ def stopGimx():
 def GetConfigurationParameters():
 	"""
 	If successful, returns a dict with all settings.
-	Current Valid settings are: 'sensibility', 'dzx' and 'dzy'.
+	Current Valid settings are: 'sensibility', 'dzx', 'dzy', 'yx_ratio', 'exp_x' and 'exp_y'.
 
 	None is returned when failed.
 	"""
@@ -188,19 +188,19 @@ def GetConfigurationParameters():
 		data=bytearray(data)[1:] # first byte is always the packet code (4).
 		#print ">%s<" % str(''.join('{:02x}'.format(x) for x in data))
 		config={}
-		config['sensibility'], config['dzx'], config['dzy']=struct.unpack('>fhh',data[0:8])
+		config['sensibility'], config['dzx'], config['dzy'], config['yx_ratio'], config['exp_x'], config['exp_y']=struct.unpack('>fhhfff',data[0:20])
 		sock.close()
 		return config
 	except socket.timeout:
 		sock.close()
 	return None
 
-def SetConfigurationParameters(sensibility=-1,dzx=32767,dzy=32767):
+def SetConfigurationParameters(sensibility=-1,dzx=32767,dzy=32767,exp_x=-1,exp_y=-1,yx_ratio=-1):
 	global GIMX_PORT
-	if(sensibility==-1 and dzx==32767 and dzy==32767): return
+	if(sensibility==-1 and dzx==32767 and dzy==32767 and exp_x==-1 and exp_y==-1 and yx_ratio==-1): return
 
 	dest = ("127.0.0.1", GIMX_PORT)
-	data = bytearray(struct.pack('>Bfhh',3,sensibility,dzx,dzy))
+	data = bytearray(struct.pack('>Bfhhfff',3,sensibility,dzx,dzy,yx_ratio,exp_x,exp_y))
 	sock = socket.socket(socket.AF_INET, # Internet
 		                  socket.SOCK_DGRAM) # UDP
 	sock.sendto(data, dest)

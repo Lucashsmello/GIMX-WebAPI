@@ -337,6 +337,9 @@ class Configurator(Resource):
 		sensibility=-1
 		dzx=32767
 		dzy=32767
+		expx=-1
+		expy=-1
+		yxratio=-1
 		save=False
 		fform=flask.request.form
 		if 'sensibility' in fform:
@@ -349,8 +352,14 @@ class Configurator(Resource):
 			save = fform['save'].lower()=='true'
 			if((not save) and fform['save'].lower()!='false'):
 				LOGGER.warning('Configurator: invalid value for save "%s"' % fform['save'])
+		if 'exp_x' in fform:
+			expx = float(fform['exp_x'])
+		if 'exp_y' in fform:
+			expy = float(fform['exp_y'])
+		if 'yx_ratio' in fform:
+			yxratio = float(fform['yx_ratio'])
 
-		SetConfigurationParameters(sensibility,dzx,dzy)
+		SetConfigurationParameters(sensibility,dzx,dzy,expx,expy,yxratio)
 		if(save):
 			saveConfigurationParameters()
 		return {'return_code':0}
