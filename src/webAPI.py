@@ -14,8 +14,12 @@ from sys import argv
 import subprocess
 import logging
 import logging.handlers
-from waitress import serve
+import gevent
+from gevent.pywsgi import WSGIServer
+from gevent import monkey; monkey.patch_all()
+import gevent_sse
 
+CHANNEL = gevent_sse.Channel(history_size=1)
 app = Flask(__name__)
 api = flask_restful.Api(app)
 
@@ -35,7 +39,7 @@ def configureLogger():
 	LOGGER = logging.getLogger('gimx_webapi')
 	LOGGER.setLevel(logging.DEBUG)
 
-	h = logging.handlers.RotatingFileHandler('../log/gimx_webapi.log',maxBytes=330000,backupCount=2)
+	h = logging.handlers.RotatingFileHandler('../log/gimx_webapi.log',maxBytes=250000,backupCount=1)
 	h.setLevel(logging.INFO)
 
 	# create formatter
@@ -46,10 +50,10 @@ def configureLogger():
 	app.logger.handlers=[h]
 
 	h = logging.StreamHandler()
-	h.setLevel(logging.DEBUG)
+	h.setLevel(logging.INFO)
 	h.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
 	LOGGER.addHandler(h)
-
+'''
 @app.before_request
 def pre_request_logging():
 	if(len(request.values)==0):
@@ -66,7 +70,7 @@ def pre_request_logging():
 def after_request_logging(response):
 	app.logger.info(('%s response: ' % str(request.url_rule)) + response.status + ', ' + response.data.decode('utf-8'))
 	return response
-
+'''
 def getLastUsedOptions():
 	opts=None
 	try:
@@ -106,19 +110,19 @@ def compareVersions(V1,V2):
 
 @app.route("/gimx/api/v%d/streamStatus" % GIMX_API_VERSION)
 def observeStatus():
-	def eventStream():
-		last_status=-1
-		while True:
-			cur_status=getGimxStatus()
-			if(cur_status!=last_status):
-				yield ("data: %d\n\n" % cur_status)
-			last_status=cur_status
-			sleep(0.5)
-	R=Response(eventStream(), mimetype="text/event-stream")
-	R.headers["HTTP/1.1 200 OK"] = "HTTP/1.1 200 OK"
-	R.headers['Content-Type'] = 'text/event-stream'
-	return R
+	return CHANNEL.subscribe()
 
+
+LAST_STATUS=-1
+def checkStatus():
+	global LAST_STATUS
+	cur_status=getGimxStatus()
+	if(cur_status==LAST_STATUS):
+		return ""
+	LAST_STATUS=cur_status
+	return str(cur_status)
+
+	
 class GimxStatus(Resource):
 	"""
 	Gives info about gimx process status.
@@ -178,11 +182,11 @@ class GimxStart(Resource):
 			options (string): the options used on the gimx command line binary (see [http://gimx.fr/wiki/index.php?title=Command_line]). Example: "options"="-c file_name -p /dev/ttyUSB0"
 		
 		POST Response
-		    return_code (int): returns 0 on success, otherwise:
-        		* 1: GIMX is already initialized!
-        		* 2: Unable to start GIMX! (And we don't known why)
-        		* 3: Missing parameter "options"
-    		message (string): If an error occurs, an error message is given here. (Exists only if return_code is not 0).
+			return_code (int): returns 0 on success, otherwise:
+				* 1: GIMX is already initialized!
+				* 2: Unable to start GIMX! (And we don't known why)
+				* 3: Missing parameter "options"
+			message (string): If an error occurs, an error message is given here. (Exists only if return_code is not 0).
 
 		"""
 		if(not ('options' in flask.request.form)):
@@ -217,7 +221,7 @@ class GimxStop(Resource):
 		Stops Gimx if it is running. Currently this works by simply making a shift+ESC event.
 		
 		Response:
-    		return_code (int): returns 0 on success.
+			return_code (int): returns 0 on success.
 		"""
 
 		msg=""
@@ -243,7 +247,7 @@ class GimxConfigFiles(Resource):
 	def get(self, name=None):
 		"""
 		Gets a list of all configuration files. Response have only one value:
-		    conf_files (string-list): A list of strings (can be empty) with each xml configuration file.
+			conf_files (string-list): A list of strings (can be empty) with each xml configuration file.
 		"""
 		if(name is None):
 			xmllist=[f for f in os.listdir(self.confdir) if f.endswith(".xml")]
@@ -262,14 +266,14 @@ class GimxConfigFiles(Resource):
 		global app
 		# check if the post request has the file part
 		if 'file' not in flask.request.files:
-		    return {'return_code':1, 'message':'No file specified'}
+			return {'return_code':1, 'message':'No file specified'}
 		if 'overwrite' in flask.request.form:
 			overwrite_enabled = flask.request.form['overwrite'].lower()=='true'
 		else:
 			overwrite_enabled = False
 		f = flask.request.files['file']
 		if f.filename == '':
-		    return {'return_code':1, 'message':'No file specified'}
+			return {'return_code':1, 'message':'No file specified'}
 		filename = secure_filename(f.filename)
 		if f and not self.allowed_file(filename):
 			return {'return_code':2, 'message':'File name "%s" not allowed' % filename}
@@ -389,9 +393,12 @@ if __name__=="__main__":
 	GimxAddResource(api,Updater,'update')
 	GimxAddResource(api,Configurator,'curconfig')
 	
+	app.debug = False
 	#psutil.net_if_addrs()
 	registerService(port)
-	serve(app,host="0.0.0.0", port=port)
+	gevent_sse.autoPublish(checkStatus,CHANNEL, 0.5)
 	#app.run(host="0.0.0.0", port=port, debug=False)  
+	http_server = WSGIServer(('', port), app)
+	http_server.serve_forever()
 	unregisterService()
 

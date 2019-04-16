@@ -1,7 +1,6 @@
 #!/bin/bash
 
-#apt install python python-pip
-#pip install -r requirements.txt
+sudo apt install python3 python3-pip -y && pip3 install -r requirements.txt
 
 LOCK_FILE=/tmp/lock-gimxwebapi-install.lock
 SERVICE_NAME=gimx-web.service
