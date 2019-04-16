@@ -106,7 +106,7 @@ After=network-online.target
 Type=simple
 User=$USER
 WorkingDirectory=$EXEC_DIR
-ExecStart=/usr/bin/env python webAPI.py -p $PORT
+ExecStart=/usr/bin/env python3 webAPI.py -p $PORT
 
 [Install]
 WantedBy=multi-user.target"
