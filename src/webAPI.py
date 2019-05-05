@@ -12,12 +12,11 @@ from threading import Thread
 from time import sleep
 from sys import argv
 import subprocess
-import logging
-import logging.handlers
 import gevent
 from gevent.pywsgi import WSGIServer
 from gevent import monkey; monkey.patch_all()
 import gevent_sse
+from loghandler import configureLogger, LogResource
 
 CHANNEL = gevent_sse.Channel(history_size=1)
 app = Flask(__name__)
@@ -25,6 +24,7 @@ api = flask_restful.Api(app)
 
 APPDATA_DIR=os.path.expanduser('~')+"/.gimx-web"
 LAST_OPTS_FILE=os.path.join(APPDATA_DIR,"last_opts")
+LOG_DIR=os.path.join(APPDATA_DIR,"log")
 GIMX_API_VERSION=1
 with open('../version.txt','r') as f:
 	VERSION=f.read().strip('\n').strip()
@@ -33,27 +33,6 @@ REPOSITORY_NAME_GIMX="matlo/GIMX"
 #UPLOAD_FOLDER=os.path.join(APPDATA_DIR,"uploads")
 #app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-def configureLogger():
-	global LOGGER,app
-	# create logger
-	LOGGER = logging.getLogger('gimx_webapi')
-	LOGGER.setLevel(logging.DEBUG)
-
-	h = logging.handlers.RotatingFileHandler('../log/gimx_webapi.log',maxBytes=250000,backupCount=1)
-	h.setLevel(logging.INFO)
-
-	# create formatter
-	formatter = logging.Formatter('%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s', "%Y-%m-%d %H:%M:%S")
-	h.setFormatter(formatter)
-	LOGGER.addHandler(h)
-	app.logger.setLevel(logging.INFO)
-	app.logger.handlers=[h]
-
-	h = logging.StreamHandler()
-	h.setLevel(logging.INFO)
-	h.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
-	LOGGER.addHandler(h)
-'''
 @app.before_request
 def pre_request_logging():
 	if(len(request.values)==0):
@@ -68,9 +47,17 @@ def pre_request_logging():
 
 @app.after_request
 def after_request_logging(response):
-	app.logger.info(('%s response: ' % str(request.url_rule)) + response.status + ', ' + response.data.decode('utf-8'))
+	url_rule=str(request.url_rule)
+	if('streamStatus' in url_rule or 'zip' in response.mimetype):
+		msg='%s response: %s' % (url_rule,str(response.status))
+	else:
+		data=str(response.data.decode('utf-8'))
+		if(len(data)>100):
+			data=data[:100]+'...'
+		msg='%s response: %s, %s' % (url_rule,str(response.status),data)
+	app.logger.info(msg)
 	return response
-'''
+
 def getLastUsedOptions():
 	opts=None
 	try:
@@ -149,13 +136,11 @@ class GimxStatus(Resource):
 		return ret
 
 def handleGimxStart(opts,wait_sec=None):
-	global APPDATA_DIR,LAST_OPTS_FILE
+	global LAST_OPTS_FILE
 	if(isGimxInitialized()):
 		return 1
 	if(startGimx(opts.split(),wait_sec)==False):
 		return 2
-	if(not os.path.isdir(APPDATA_DIR)):
-		os.mkdir(APPDATA_DIR)
 	try:
 		with open(LAST_OPTS_FILE,'w') as f:
 			f.write(opts)
@@ -254,7 +239,7 @@ class GimxConfigFiles(Resource):
 			return {'conf_files':xmllist}
 		with open(os.path.join(self.confdir,name),'rb') as f:
 			data=io.BytesIO(f.read())
-			return flask.send_file(data, as_attachment=True, attachment_filename=name)
+			return flask.send_file(data, as_attachment=True, attachment_filename=name,cache_timeout=4)
 
 	def post(self):
 		"""
@@ -325,12 +310,12 @@ class Updater(Resource):
 				f.save(fout_path)
 				cmd.append(fout_path)
 				
-			subprocess.check_call(cmd+['../../'], cwd='../auto_updater/')
+			install_out=subprocess.check_output(cmd+['../../'], cwd='../auto_updater/')
+			INSTALL_LOGGER.info(install_out)
 		except subprocess.CalledProcessError as e:
 			LOGGER.error(str(e))
 			return {'return_code':e.returncode}
 		return {'return_code':0}
-
 
 class Configurator(Resource):
 	def get(self):
@@ -380,7 +365,9 @@ def GimxAddResource(api,res,route1,route2=None):
 	api.add_resource(res,R1,R2)
 
 if __name__=="__main__":
-	configureLogger()
+	if(not os.path.isdir(APPDATA_DIR)):
+		os.mkdir(APPDATA_DIR)
+	configureLogger(LOG_DIR,app)
 	LOGGER.info("version %s" % VERSION)
 	port=80
 	if('-p' in argv):
@@ -392,6 +379,7 @@ if __name__=="__main__":
 	GimxAddResource(api,CheckVersion,'version')
 	GimxAddResource(api,Updater,'update')
 	GimxAddResource(api,Configurator,'curconfig')
+	GimxAddResource(api,LogResource,'log')
 	
 	app.debug = False
 	#psutil.net_if_addrs()
