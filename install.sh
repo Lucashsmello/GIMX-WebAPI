@@ -1,6 +1,7 @@
 #!/bin/bash
 
-sudo apt install python3 python3-pip -y && pip3 install -r requirements.txt
+#sudo apt install python3 python3-pip python3-dev -y && python3 -m pip install -r requirements.txt
+#python3 -m pip install -U pip wheel setuptools
 
 LOCK_FILE=/tmp/lock-gimxwebapi-install.lock
 SERVICE_NAME=gimx-web.service
@@ -14,7 +15,7 @@ function usage() {
 \t$0
 \t$0 --help
 \t$0 --uninstall
-\t$0 [-p <PORT>] [--install-dir <DIRECTORY>] [--dont-install-gimx]\n"
+\t$0 [-p <PORT>] [--install-dir <DIRECTORY>] [--dont-install-gimx] [--mod <MOD>]\n"
 }
 
 function quit() {
@@ -96,6 +97,7 @@ mkdir -p "$INSTALL_DIR/log"
 
 
 echo "EXEC_DIR: $EXEC_DIR"
+
 SERVICE_CONTENT="\
 [Unit]
 Description=GIMX Web Service
@@ -116,13 +118,20 @@ if systemctl is-active --quiet $SERVICE_NAME; then
 fi
 
 if [ "$INSTALL_GIMX" = "y" ]; then
+	curV=`gimx --version | cut -d" " -f2`
 	for f in build/gimx*$ARCH*$MOD*.deb; do
 		if [ -e "$f" ]; then
-			#systemctl stop $SERVICE_NAME
-			echo "installing $f"
-			if ! dpkg -i $f; then
-				echo "Error in installing gimx."
-				quit 4
+			newV=`echo "$f" | cut -d"_" -f2 | cut -d"-" -f1`
+			if [ "$curV" = "$newV" ]; then
+				echo "GIMX $curV already installed."
+				break
+			else
+				#systemctl stop $SERVICE_NAME
+				echo "installing $f"
+				if ! dpkg -i $f; then
+					echo "Error in installing gimx."
+					quit 4
+				fi
 			fi
 		else
 			echo "Error in installing gimx. No deb file found."
@@ -135,4 +144,5 @@ fi
 printf "$SERVICE_CONTENT" > $SERVICE_PATH
 systemctl daemon-reload
 rm $LOCK_FILE
+echo "Installation successful!"
 systemctl enable $SERVICE_NAME && systemctl restart $SERVICE_NAME
