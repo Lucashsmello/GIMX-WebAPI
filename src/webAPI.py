@@ -287,6 +287,15 @@ class CheckVersion(Resource):
 			myV['needs-update'] = myV["gimxWebAPI-version"]!=lastV[0]
 		return myV
 
+def waitUpdateProcess(P):
+	global INSTALL_LOGGER
+	(stdout, stderr) = P.communicate()
+	if(not(stdout is None)):
+		INSTALL_LOGGER.info(stdout)
+	if(not(stderr is None)):
+		INSTALL_LOGGER.warn(stderr)
+
+
 class Updater(Resource):
 	"""
 	Responsible for updating/installing/changing versions.
@@ -310,8 +319,11 @@ class Updater(Resource):
 				f.save(fout_path)
 				cmd.append(fout_path)
 				
-			install_out=subprocess.check_output(cmd+['../../'], cwd='../auto_updater/')
-			INSTALL_LOGGER.info(install_out)
+			#install_out=subprocess.check_output(cmd+['../../'], cwd='../auto_updater/')
+			P=subprocess.Popen(cmd+['../../'],cwd='../auto_updater/',stdout=PIPE)
+			T = Thread(target=waitUpdateProcess, args=(P,))
+			T.daemon=True
+			T.start()
 		except subprocess.CalledProcessError as e:
 			LOGGER.error(str(e))
 			return {'return_code':e.returncode}
@@ -367,7 +379,7 @@ def GimxAddResource(api,res,route1,route2=None):
 if __name__=="__main__":
 	if(not os.path.isdir(APPDATA_DIR)):
 		os.mkdir(APPDATA_DIR)
-	configureLogger(LOG_DIR,app)
+	(LOGGER, INSTALL_LOGGER)=configureLogger(LOG_DIR,app)
 	LOGGER.info("version %s" % VERSION)
 	port=80
 	if('-p' in argv):

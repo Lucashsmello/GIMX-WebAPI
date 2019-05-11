@@ -62,3 +62,4 @@ def configureLogger(log_dir,app):
 	h.setLevel(logging.INFO)
 	h.setFormatter(formatter)
 	INSTALL_LOGGER.addHandler(h)
+	return (LOGGER, INSTALL_LOGGER)
