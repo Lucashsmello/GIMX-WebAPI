@@ -7,8 +7,8 @@ git clone https://github.com/Lucashsmello/GIMX-WebAPI.git
 
 Open a terminal in the downloaded repository folder and install requirements:
 ```
-sudo apt install python python-pip
-pip install -r requirements.txt
+sudo apt install python3 python3-pip python3-dev
+pip3 install -r requirements.txt
 ```
 
 Finally, run install.sh:
