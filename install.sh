@@ -6,7 +6,7 @@
 LOCK_FILE=/tmp/lock-gimxwebapi-install.lock
 SERVICE_NAME=gimx-web.service
 SERVICE_PATH=/etc/systemd/system/$SERVICE_NAME
-PORT=80
+PORT=51916
 V=`cat version.txt`
 ARCH=`dpkg --print-architecture`
 

@@ -381,7 +381,7 @@ if __name__=="__main__":
 		os.mkdir(APPDATA_DIR)
 	(LOGGER, INSTALL_LOGGER)=configureLogger(LOG_DIR,app)
 	LOGGER.info("version %s" % VERSION)
-	port=80
+	port=51916
 	if('-p' in argv):
 		port=int(argv[argv.index('-p')+1])
 	GimxAddResource(api,GimxStatus,'status')

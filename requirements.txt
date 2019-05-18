@@ -1,5 +1,4 @@
 Flask
 Flask-RESTful
 psutil
-python-uinput
 gevent
