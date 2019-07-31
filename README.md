@@ -1,3 +1,5 @@
+An open-source project with the purpose of building a REST API for using GIMX over http. This is quite useful for projects that want to use GIMX over network, such as an android app for controlling a remote GIMX device. This project is built under python-flask.
+
 ## Installation
 
 Clone the repository:
