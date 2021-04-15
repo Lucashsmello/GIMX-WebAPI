@@ -18,9 +18,17 @@ Finally run install.sh specifying an arbitrary directory to install with option 
 ```
 ./install.sh --install-dir /path/to/gimx-webapi/releases/
 ```
-Run `./install.sh --help` for more details.
+**Note:** if you already have installed gimx, or you did not downloaded the released package, consider installing with option `--dont-install-gimx`:
+```bash
+./install.sh --install-dir /path/to/gimx-webapi/releases/ --dont-install-gimx
+```
+Run `./install.sh --help` for more help.
 
-You can test if it is working by acessing `IP:PORT/gimx/api/v1/version` (Ex: [http://localhost:51916/gimx/api/v1/version](http://localhost:51916/gimx/api/v1/version)). It must show your installed version.
+You can test if it is working by acessing `IP:PORT/gimx/api/v1/version` (Ex: [http://localhost:51916/gimx/api/v1/version](http://localhost:51916/gimx/api/v1/version)) or running
+```bash
+curl http://localhost:51916/gimx/api/v1/version
+```
+It must show your installed version.
 
 To uninstall, run with `--uninstall` as an option:
 ```
